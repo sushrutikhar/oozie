@@ -1,0 +1,26 @@
+# Maven
+target
+
+# IntelliJ
+*.iml
+*.ipr
+*.iws
+
+# Structure101
+*.hsp
+
+# Eclipse
+.classpath
+.project
+.settings
+
+# Oozie build
+core/pig*
+core/hive-*
+core/build
+core/mem
+examples/oozietests
+mkdistro-*.out
+distro/downloads
+SecurityAuth.audit
+build
