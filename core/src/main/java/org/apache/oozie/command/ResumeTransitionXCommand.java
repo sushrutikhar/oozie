@@ -64,6 +64,7 @@ public abstract class ResumeTransitionXCommand extends TransitionXCommand<Void> 
         try {
             resumeChildren();
             updateJob();
+            performWrites();
         } finally {
             notifyParent();
         }

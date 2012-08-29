@@ -517,4 +517,8 @@ public class BundleSubmitXCommand extends SubmitTransitionXCommand {
     @Override
     public void updateJob() throws CommandException {
     }
+
+    @Override
+    public void performWrites() throws CommandException {
+    }
 }

@@ -36,6 +36,7 @@ import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.command.SkipCommitFaultInjection;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.service.JPAService;
+import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.workflow.WorkflowApp;
@@ -45,9 +46,10 @@ import org.apache.oozie.workflow.lite.LiteWorkflowApp;
 import org.apache.oozie.workflow.lite.StartNodeDef;
 
 /**
- * Testcases for bulk JPA writes - inserts and updates
+ * Testcases for bulk JPA writes - insert and update operations for Coord Action
+ * Status commands
  */
-public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
+public class TestBulkUpdateInsertForCoordActionStatusJPAExecutor extends XDataTestCase {
     Services services;
 
     @Override
@@ -85,7 +87,7 @@ public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
         updateList.add(coordJob);
         updateList.add(wfJob);
         updateList.add(action);
-        BulkUpdateInsertJPAExecutor bulkUpdateCmd = new BulkUpdateInsertJPAExecutor();
+        BulkUpdateInsertForCoordActionStatusJPAExecutor bulkUpdateCmd = new BulkUpdateInsertForCoordActionStatusJPAExecutor();
         bulkUpdateCmd.setUpdateList(updateList);
         jpaService.execute(bulkUpdateCmd);
 
@@ -105,9 +107,11 @@ public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
      * Test bulk inserts by inserting a workflow job and two workflow actions
      * @throws Exception
      */
+    /*
     public void testInserts() throws Exception{
-        WorkflowApp app = new LiteWorkflowApp("testApp", "<workflow-app/>", new StartNodeDef("end"))
-                .addNode(new EndNodeDef("end"));
+        WorkflowApp app = new LiteWorkflowApp("testApp", "<workflow-app/>",
+            new StartNodeDef(LiteWorkflowStoreService.LiteControlNodeHandler.class, "end"))
+                .addNode(new EndNodeDef("end", LiteWorkflowStoreService.LiteControlNodeHandler.class));
         Configuration conf = new Configuration();
         Path appUri = new Path(getAppPath(), "workflow.xml");
         conf.set(OozieClient.APP_PATH, appUri.toString());
@@ -126,7 +130,7 @@ public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
 
         JPAService jpaService = Services.get().get(JPAService.class);
         assertNotNull(jpaService);
-        BulkUpdateInsertJPAExecutor bulkInsertCmd = new BulkUpdateInsertJPAExecutor();
+        BulkUpdateInsertForCoordActionStatusJPAExecutor bulkInsertCmd = new BulkUpdateInsertForCoordActionStatusJPAExecutor();
         bulkInsertCmd.setInsertList(insertList);
         jpaService.execute(bulkInsertCmd);
 
@@ -143,7 +147,7 @@ public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
         job = jpaService.execute(wfGetCmd);
         assertEquals("PREP", job.getStatusStr());
 
-    }
+    }*/
 
     /**
      * Test bulk inserts and updates by inserting wf actions and updating
@@ -172,7 +176,7 @@ public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
         JPAService jpaService = Services.get().get(JPAService.class);
         assertNotNull(jpaService);
 
-        BulkUpdateInsertJPAExecutor bulkUpdateCmd = new BulkUpdateInsertJPAExecutor(updateList, insertList);
+        BulkUpdateInsertForCoordActionStatusJPAExecutor bulkUpdateCmd = new BulkUpdateInsertForCoordActionStatusJPAExecutor(updateList, insertList);
         jpaService.execute(bulkUpdateCmd);
 
         coordJob = jpaService.execute(new CoordJobGetJPAExecutor(coordJob.getId()));
@@ -214,7 +218,7 @@ public class TestBulkUpdateInsertJPAExecutor extends XDataTestCase {
         JPAService jpaService = Services.get().get(JPAService.class);
         assertNotNull(jpaService);
 
-        BulkUpdateInsertJPAExecutor wfUpdateCmd1 = new BulkUpdateInsertJPAExecutor(updateList, insertList);
+        BulkUpdateInsertForCoordActionStatusJPAExecutor wfUpdateCmd1 = new BulkUpdateInsertForCoordActionStatusJPAExecutor(updateList, insertList);
 
         // set fault injection to true, so transaction is roll backed
         setSystemProperty(FaultInjection.FAULT_INJECTION, "true");

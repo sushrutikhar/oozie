@@ -17,11 +17,13 @@
  */
 package org.apache.oozie.command.coord;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
@@ -30,13 +32,14 @@ import org.apache.oozie.XException;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.Job;
 import org.apache.oozie.client.OozieClient;
+import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
 import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
-import org.apache.oozie.executor.jpa.CoordActionRemoveJPAExecutor;
+import org.apache.oozie.executor.jpa.BulkUpdateDeleteJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetActionByActionNumberJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
-import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.Services;
@@ -55,6 +58,8 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
     private CoordinatorJobBean coordJob;
     private JPAService jpaService = null;
     private Job.Status prevStatus;
+    private List<JsonBean> updateList = new ArrayList<JsonBean>();
+    private List<JsonBean> deleteList = new ArrayList<JsonBean>();
 
     private static final Set<String> ALLOWED_CHANGE_OPTIONS = new HashSet<String>();
     static {
@@ -231,9 +236,9 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
     private void deleteAction(String jobId, int lastActionNum) throws CommandException {
         try {
             String coordActionId = jpaService.execute(new CoordJobGetActionByActionNumberJPAExecutor(jobId, lastActionNum));
-            jpaService.execute(new CoordActionRemoveJPAExecutor(coordActionId));
-        }
-        catch (JPAExecutorException e) {
+            CoordinatorActionBean bean = jpaService.execute(new CoordActionGetJPAExecutor(coordActionId));
+            deleteList.add(bean);
+        } catch (JPAExecutorException e) {
             throw new CommandException(e);
         }
     }
@@ -302,7 +307,8 @@ public class CoordChangeXCommand extends CoordinatorXCommand<Void> {
                 }
             }
 
-            jpaService.execute(new CoordJobUpdateJPAExecutor(this.coordJob));
+            updateList.add(coordJob);
+            jpaService.execute(new BulkUpdateDeleteJPAExecutor(updateList, deleteList, false));
 
             return null;
         }

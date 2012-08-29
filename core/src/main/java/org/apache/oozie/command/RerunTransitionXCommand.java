@@ -87,6 +87,7 @@ public abstract class RerunTransitionXCommand<T> extends TransitionXCommand<T> {
             transitToNext();
             rerunChildren();
             updateJob();
+            performWrites();
         }
         finally {
             notifyParent();

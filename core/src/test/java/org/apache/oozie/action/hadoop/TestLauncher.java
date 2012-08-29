@@ -46,6 +46,7 @@ public class TestLauncher extends XFsTestCase {
     @Override
     protected void tearDown() throws Exception {
         Services.get().destroy();
+        
         super.tearDown();
     }
 

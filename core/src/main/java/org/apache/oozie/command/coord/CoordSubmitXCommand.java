@@ -1132,4 +1132,8 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
     public Job getJob() {
         return coordJob;
     }
+
+    @Override
+    public void performWrites() throws CommandException {
+    }
 }
