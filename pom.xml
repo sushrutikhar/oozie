@@ -65,7 +65,7 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>1.0.1</hadoop.version>
+        <hadoop.version>0.23.1</hadoop.version>
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
         <!--
         This is required while we support a a pre 0.23 version of Hadoop which does not have
@@ -101,6 +101,14 @@
     </distributionManagement>
 
     <repositories>
+        <repository>
+            <id>internal.maven.repoi.snapshots</id>
+            <name>Internal Repository for Integration</name>
+            <url>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
         <repository>
             <id>internal.maven.repo</id>
             <name>Internal Repository for Integration</name>
@@ -162,6 +170,12 @@
     </pluginRepositories>
 
     <dependencyManagement>
+        <dependency>
+            <groupId>org.apache.oozie.extensions</groupId>
+            <artifactId>oozie-el-extensions</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
         <dependencies>
             <dependency>
                 <groupId>org.apache.oozie</groupId>
@@ -812,6 +826,10 @@
                         <!-- See 'testSqoop' profile in core/pom.xml and the Building doc-->
                         <exclude>**/TestSqoop*.java</exclude>
                     </excludes>
+                    <!-- DO NOT CHANGE THIS VALUES, TESTCASES CANNOT RUN IN PARALLEL -->
+                    <parallel>classes</parallel>
+                    <threadCount>1</threadCount>
+                    <perCoreThreadCount>1</perCoreThreadCount>
                 </configuration>
             </plugin>
             <plugin>
