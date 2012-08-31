@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+     <property>
+        <name>oozie.service.ELService.ext.functions.coord-job-submit-instances</name>
+        <value>
+           coordext:today=org.apache.oozie.command.coord.CoordELExtension#ph1_today_echo,
+           coordext:currentMonth=org.apache.oozie.command.coord.CoordELExtension#ph1_currentMonth_echo
+        </value>
+        <description>
+            EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
+            This property is a convenience property to add extensions to the built in executors without having to
+            include all the built in ones.
+        </description>
+    </property>
+    <property>
+        <name>oozie.service.ELService.ext.functions.coord-action-create-inst</name>
+        <value>
+           coordext:currentMonth=org.apache.oozie.command.coord.CoordELExtension#ph2_currentMonth_inst,
+           coordext:today=org.apache.oozie.command.coord.CoordELExtension#ph2_today_inst
+        </value>
+        <description>
+            EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
+            This property is a convenience property to add extensions to the built in executors without having to
+            include all the built in ones.
+        </description>
+    </property>
+    <property>
+        <name>oozie.service.ELService.ext.functions.coord-action-create</name>
+        <value>
+           coordext:currentMonth=org.apache.oozie.command.coord.CoordELExtension#ph2_currentMonth,
+           coordext:today=org.apache.oozie.command.coord.CoordELExtension#ph2_today
+        </value>
+        <description>
+            EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
+            This property is a convenience property to add extensions to the built in executors without having to
+            include all the built in ones.
+        </description>
+    </property>
+</configuration>
