@@ -76,11 +76,11 @@ public class TestActionFailover extends XFsTestCase {
         conf.setProperty("source", source.toString());
         conf.setProperty("target", target.toUri().getPath());
 
-        setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
-        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
-
         final String jobId1 = wfClient.submit(conf);
         wfClient.start(jobId1);
+        
+        setSystemProperty(FaultInjection.FAULT_INJECTION, "true");
+        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "true");
 
         waitFor(10 * 1000, new Predicate() {
             public boolean evaluate() throws Exception {
