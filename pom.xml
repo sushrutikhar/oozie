@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>3.2.1-incubating-SNAPSHOT</version>
+    <version>3.2.1</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -42,7 +42,7 @@
         <!-- to be able to run a single test case from the main project -->
         <failIfNoTests>false</failIfNoTests>
 
-        <internal.maven.repository>file:///tmp/internalmavenrepo</internal.maven.repository>
+        <internal.maven.repository>http://build.corp.inmobi.com/nexus/content/repositories/releases</internal.maven.repository>
 
         <test.timeout>3600</test.timeout>
 
@@ -65,7 +65,7 @@
         </oozie.test.default.config.file>
         <oozie.test.config.file>${oozie.test.default.config.file}</oozie.test.config.file>
 
-        <hadoop.version>0.23.1</hadoop.version>
+        <hadoop.version>1.0.1</hadoop.version>
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
         <!--
         This is required while we support a a pre 0.23 version of Hadoop which does not have
@@ -102,7 +102,7 @@
 
     <repositories>
         <repository>
-            <id>internal.maven.repoi.snapshots</id>
+            <id>internal.maven.repo.snapshots</id>
             <name>Internal Repository for Integration</name>
             <url>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</url>
             <snapshots>
@@ -114,7 +114,7 @@
             <name>Internal Repository for Integration</name>
             <url>${internal.maven.repository}</url>
             <snapshots>
-                <enabled>true</enabled>
+                <enabled>false</enabled>
             </snapshots>
         </repository>
         <repository>
@@ -170,13 +170,13 @@
     </pluginRepositories>
 
     <dependencyManagement>
+        <dependencies>
         <dependency>
             <groupId>org.apache.oozie.extensions</groupId>
             <artifactId>oozie-el-extensions</artifactId>
             <version>0.1-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
-        <dependencies>
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-client</artifactId>
@@ -263,7 +263,7 @@
             <dependency>
                 <groupId>junit</groupId>
                 <artifactId>junit</artifactId>
-                <version>3.8.1</version>
+                <version>4.10</version>
             </dependency>
 
             <dependency>

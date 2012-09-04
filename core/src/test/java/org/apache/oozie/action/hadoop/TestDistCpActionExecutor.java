@@ -59,6 +59,7 @@ public class TestDistCpActionExecutor extends ActionExecutorTestCase{
                 return runningJob.isComplete();
             }
         });
+        System.out.println(runningJob.isComplete());
         assertTrue(runningJob.isSuccessful());
     }
 

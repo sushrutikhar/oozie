@@ -22,16 +22,22 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>3.2.1-incubating-SNAPSHOT</version>
+        <version>3.2.1</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-webapp</artifactId>
-    <version>3.2.1-incubating-SNAPSHOT</version>
+    <version>3.2.1</version>
     <description>Apache Oozie WebApp</description>
     <name>Apache Oozie WebApp</name>
     <packaging>war</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.oozie.extensions</groupId>
+            <artifactId>oozie-el-extensions</artifactId>
+            <version>0.1-SNAPSHOT</version>
+            <scope>compile</scope>
+        </dependency>
         <dependency>
             <groupId>org.apache.oozie</groupId>
             <artifactId>oozie-core</artifactId>
