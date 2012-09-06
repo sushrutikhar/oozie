@@ -39,8 +39,8 @@ import org.apache.oozie.service.HadoopAccessorService;
  */
 
 public class CoordELFunctions {
-    final private static String DATASET = "oozie.coord.el.dataset.bean";
-    final private static String COORD_ACTION = "oozie.coord.el.app.bean";
+    final public static String DATASET = "oozie.coord.el.dataset.bean";
+    final public static String COORD_ACTION = "oozie.coord.el.app.bean";
     final public static String CONFIGURATION = "oozie.coord.el.conf";
     // INSTANCE_SEPARATOR is used to separate multiple directories into one tag.
     final public static String INSTANCE_SEPARATOR = "#";
