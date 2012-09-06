@@ -29,8 +29,7 @@
             org.apache.oozie.action.email.EmailActionExecutor,
             org.apache.oozie.action.hadoop.HiveActionExecutor,
             org.apache.oozie.action.hadoop.ShellActionExecutor,
-            org.apache.oozie.action.hadoop.SqoopActionExecutor,
-            org.apache.oozie.action.ssh.SshActionExecutor
+            org.apache.oozie.action.hadoop.SqoopActionExecutor
         </value>
     </property>
 
@@ -122,7 +121,7 @@
 
     <property>
         <name>oozie.service.JPAService.create.db.schema</name>
-        <value>false</value>
+        <value>true</value>
         <description>
             Creates Oozie DB.
 

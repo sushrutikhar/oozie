@@ -156,7 +156,7 @@
             <name>Internal Repository for Integration</name>
             <url>${internal.maven.repository}</url>
             <snapshots>
-                <enabled>true</enabled>
+                <enabled>false</enabled>
             </snapshots>
         </pluginRepository>
         <pluginRepository>
