@@ -104,11 +104,11 @@ public class TestActionFailover extends XFsTestCase {
         WorkflowActionBean action = actions.get(0);
         assertEquals(WorkflowAction.Status.PREP, action.getStatus());
 
-        setSystemProperty(FaultInjection.FAULT_INJECTION, "false");
-        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "false");
-
         ActionStartXCommand actionStartCommand = new ActionStartXCommand(action.getId(), action.getType());
         actionStartCommand.call();
+
+        setSystemProperty(FaultInjection.FAULT_INJECTION, "false");
+        setSystemProperty(SkipCommitFaultInjection.ACTION_FAILOVER_FAULT_INJECTION, "false");
 
         store = Services.get().get(WorkflowStoreService.class).create();
         actions = store.getActionsForWorkflow(jobId1, false);
