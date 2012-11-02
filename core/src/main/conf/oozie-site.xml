@@ -340,7 +340,9 @@
            lastMonth=org.apache.oozie.extensions.OozieELExtensions#ph1_lastMonth_echo,
            currentYear=org.apache.oozie.extensions.OozieELExtensions#ph1_currentYear_echo,
            lastYear=org.apache.oozie.extensions.OozieELExtensions#ph1_lastYear_echo,
-           formatTime=org.apache.oozie.coord.CoordELFunctions#ph1_coord_formatTime_echo
+           formatTime=org.apache.oozie.coord.CoordELFunctions#ph1_coord_formatTime_echo,
+           latest=org.apache.oozie.coord.CoordELFunctions#ph2_coord_latest_echo,
+           future=org.apache.oozie.coord.CoordELFunctions#ph2_coord_future_echo
         </value>
         <description>
             EL functions declarations, separated by commas, format is [PREFIX:]NAME=CLASS#METHOD.
