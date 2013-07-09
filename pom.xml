@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>3.2.2</version>
+    <version>3.2.3</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -42,7 +42,6 @@
         <!-- to be able to run a single test case from the main project -->
         <failIfNoTests>false</failIfNoTests>
 
-        <internal.maven.repository>http://build.corp.inmobi.com/nexus/content/repositories/releases</internal.maven.repository>
 
         <test.timeout>3600</test.timeout>
 
@@ -93,31 +92,15 @@
         <module>distro</module>
     </modules>
 
-    <distributionManagement>
+    <!--distributionManagement>
         <repository>
             <id>internal.maven.repo</id>
             <name>Internal Repository for Integration</name>
             <url>${internal.maven.repository}</url>
         </repository>
-    </distributionManagement>
+    </distributionManagement-->
 
     <repositories>
-        <repository>
-            <id>internal.maven.repo.snapshots</id>
-            <name>Internal Repository for Integration</name>
-            <url>http://build.corp.inmobi.com/nexus/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>internal.maven.repo</id>
-            <name>Internal Repository for Integration</name>
-            <url>${internal.maven.repository}</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
         <repository>
             <id>central</id>
             <url>http://repo1.maven.org/maven2</url>
