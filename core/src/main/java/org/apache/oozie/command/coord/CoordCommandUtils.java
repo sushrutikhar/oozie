@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,6 +18,7 @@
 package org.apache.oozie.command.coord;
 
 import java.io.StringReader;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -44,6 +45,7 @@ public class CoordCommandUtils {
     public static int CURRENT = 0;
     public static int LATEST = 1;
     public static int FUTURE = 2;
+    public static int OFFSET = 3;
     public static int UNEXPECTED = -1;
     public static final String RESOLVED_UNRESOLVED_SEPARATOR = ";";
 
@@ -51,36 +53,28 @@ public class CoordCommandUtils {
      * parse a function like coord:latest(n)/future() and return the 'n'.
      * <p/>
      * @param function
+     * @param event
+     * @param appInst
+     * @param conf
      * @param restArg
      * @return int instanceNumber
      * @throws Exception
      */
-    public static int getInstanceNumber(String function, StringBuilder restArg) throws Exception {
-        int funcType = getFuncType(function);
+    public static int getInstanceNumber(String function, Element event, SyncCoordAction appInst, Configuration conf,
+            StringBuilder restArg) throws Exception {
+        ELEvaluator eval = CoordELEvaluator
+                .createInstancesELEvaluator("coord-action-create-inst", event, appInst, conf);
+        String newFunc = CoordELFunctions.evalAndWrap(eval, function);
+        int funcType = getFuncType(newFunc);
         if (funcType == CURRENT || funcType == LATEST) {
-            return parseOneArg(function);
+            return parseOneArg(newFunc);
         }
         else {
-            return parseMoreArgs(function, restArg);
+            return parseMoreArgs(newFunc, restArg);
         }
     }
 
-    /**
-     * Evaluates function for coord-action-create-inst tag
-     * @param event
-     * @param appInst
-     * @param conf
-     * @param function
-     * @return evaluation result
-     * @throws Exception
-     */
-    private static String evaluateInstanceFunction(Element event, SyncCoordAction appInst, Configuration conf, 
-            String function) throws Exception {
-        ELEvaluator eval = CoordELEvaluator.createInstancesELEvaluator("coord-action-create-inst", event, appInst, conf);
-        return CoordELFunctions.evalAndWrap(eval, function);
-    }
-
-    public static int parseOneArg(String funcName) throws Exception {
+    private static int parseOneArg(String funcName) throws Exception {
         int firstPos = funcName.indexOf("(");
         int lastPos = funcName.lastIndexOf(")");
         if (firstPos >= 0 && lastPos > firstPos) {
@@ -120,6 +114,9 @@ public class CoordCommandUtils {
         else if (function.indexOf("future") >= 0) {
             return FUTURE;
         }
+        else if (function.indexOf("offset") >= 0) {
+            return OFFSET;
+        }
         return UNEXPECTED;
         // throw new RuntimeException("Unexpected instance name "+ function);
     }
@@ -132,7 +129,7 @@ public class CoordCommandUtils {
     public static void checkIfBothSameType(String startInst, String endInst) throws CommandException {
         if (getFuncType(startInst) != getFuncType(endInst)) {
             throw new CommandException(ErrorCode.E1010,
-                    " start-instance and end-instance both should be either latest or current or future\n"
+                    " start-instance and end-instance both should be either latest or current or future or offset\n"
                             + " start " + startInst + " and end " + endInst);
         }
     }
@@ -174,47 +171,73 @@ public class CoordCommandUtils {
         Element eStartInst = event.getChild("start-instance", event.getNamespace());
         Element eEndInst = event.getChild("end-instance", event.getNamespace());
         if (eStartInst != null && eEndInst != null) {
-            String strStart = evaluateInstanceFunction(event, appInst, conf, eStartInst.getTextTrim());
-            String strEnd = evaluateInstanceFunction(event, appInst, conf, eEndInst.getTextTrim());
-            
+            String strStart = eStartInst.getTextTrim();
+            String strEnd = eEndInst.getTextTrim();
             checkIfBothSameType(strStart, strEnd);
             StringBuilder restArg = new StringBuilder(); // To store rest
                                                          // arguments for
                                                          // future
                                                          // function
-            int startIndex = getInstanceNumber(strStart, restArg);
+            int startIndex = getInstanceNumber(strStart, event, appInst, conf, restArg);
+            String startRestArg = restArg.toString();
             restArg.delete(0, restArg.length());
-            int endIndex = getInstanceNumber(strEnd, restArg);
-            if (startIndex > endIndex) {
-                throw new CommandException(ErrorCode.E1010,
-                        " start-instance should be equal or earlier than the end-instance \n"
-                                + XmlUtils.prettyPrint(event));
-            }
+            int endIndex = getInstanceNumber(strEnd, event, appInst, conf, restArg);
+            String endRestArg = restArg.toString();
             int funcType = getFuncType(strStart);
-            if (funcType == CURRENT) {
-                // Everything could be resolved NOW. no latest() ELs
-                for (int i = endIndex; i >= startIndex; i--) {
-                    String matInstance = materializeInstance(event, "${coord:current(" + i + ")}", appInst, conf, eval);
-                    if (matInstance == null || matInstance.length() == 0) {
-                        // Earlier than dataset's initial instance
-                        break;
+            if (funcType == OFFSET) {
+                TimeUnit startU = TimeUnit.valueOf(startRestArg);
+                TimeUnit endU = TimeUnit.valueOf(endRestArg);
+                if (startU.getCalendarUnit() * startIndex > endU.getCalendarUnit() * endIndex) {
+                    throw new CommandException(ErrorCode.E1010,
+                            " start-instance should be equal or earlier than the end-instance \n"
+                                    + XmlUtils.prettyPrint(event));
+                }
+                Calendar startCal = CoordELFunctions.resolveOffsetRawTime(startIndex, startU, eval);
+                Calendar endCal = CoordELFunctions.resolveOffsetRawTime(endIndex, endU, eval);
+                if (startCal != null && endCal != null) {
+                    List<Integer> expandedFreqs = CoordELFunctions.expandOffsetTimes(startCal, endCal, eval);
+                    for (int i = expandedFreqs.size() - 1; i >= 0; i--) {
+                        String matInstance = materializeInstance(event, "${coord:offset(" + expandedFreqs.get(i) + ", \"MINUTE\")}",
+                                                                    appInst, conf, eval);
+                        if (matInstance == null || matInstance.length() == 0) {
+                            // Earlier than dataset's initial instance
+                            break;
+                        }
+                        if (instances.length() > 0) {
+                            instances.append(CoordELFunctions.INSTANCE_SEPARATOR);
+                        }
+                        instances.append(matInstance);
                     }
-                    if (instances.length() > 0) {
-                        instances.append(CoordELFunctions.INSTANCE_SEPARATOR);
-                    }
-                    instances.append(matInstance);
                 }
             }
-            else { // latest(n)/future() EL is present
-                for (; startIndex <= endIndex; startIndex++) {
-                    if (instances.length() > 0) {
-                        instances.append(CoordELFunctions.INSTANCE_SEPARATOR);
+            else {
+                if (startIndex > endIndex) {
+                    throw new CommandException(ErrorCode.E1010,
+                            " start-instance should be equal or earlier than the end-instance \n"
+                                    + XmlUtils.prettyPrint(event));
+                }
+                if (funcType == CURRENT) {
+                    // Everything could be resolved NOW. no latest() ELs
+                    for (int i = endIndex; i >= startIndex; i--) {
+                        String matInstance = materializeInstance(event, "${coord:current(" + i + ")}", appInst, conf, eval);
+                        if (matInstance == null || matInstance.length() == 0) {
+                            // Earlier than dataset's initial instance
+                            break;
+                        }
+                        if (instances.length() > 0) {
+                            instances.append(CoordELFunctions.INSTANCE_SEPARATOR);
+                        }
+                        instances.append(matInstance);
                     }
+                }
+                else { // latest(n)/future() EL is present
                     if (funcType == LATEST) {
-                        instances.append("${coord:latest(" + startIndex + ")}");
+                        instances.append("${coord:latestRange(").append(startIndex).append(",").append(endIndex)
+                                .append(")}");
                     }
-                    else { // For future
-                        instances.append("${coord:future(" + startIndex + ",'" + restArg + "')}");
+                    else if (funcType == FUTURE) {
+                        instances.append("${coord:futureRange(").append(startIndex).append(",").append(endIndex)
+                                .append(",'").append(endRestArg).append("')}");
                     }
                 }
             }
@@ -413,8 +436,8 @@ public class CoordCommandUtils {
         eAction.removeAttribute("start");
         eAction.removeAttribute("end");
         eAction.setAttribute("instance-number", Integer.toString(instanceCount));
-        eAction.setAttribute("action-nominal-time", DateUtils.formatDateUTC(nominalTime));
-        eAction.setAttribute("action-actual-time", DateUtils.formatDateUTC(actualTime));
+        eAction.setAttribute("action-nominal-time", DateUtils.formatDateOozieTZ(nominalTime));
+        eAction.setAttribute("action-actual-time", DateUtils.formatDateOozieTZ(actualTime));
 
         boolean isSla = CoordCommandUtils.materializeSLA(eAction.getChild("action", eAction.getNamespace()).getChild(
                 "info", eAction.getNamespace("sla")), nominalTime, conf);
