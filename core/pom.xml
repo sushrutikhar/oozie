@@ -16,17 +16,16 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>3.3.2.1-SNAPSHOT</version>
+        <version>3.3.2.1</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-core</artifactId>
-    <version>3.3.2.1-SNAPSHOT</version>
+    <version>3.3.2.1</version>
     <description>Apache Oozie Core</description>
     <name>Apache Oozie Core</name>
     <packaging>jar</packaging>
@@ -443,32 +442,32 @@
                         <configuration>
                             <target>
                                 <path id="cp">
-                                    <path refid="maven.test.classpath"/>
-                                    <path refid="maven.compile.classpath"/>
-                                    <path refid="maven.dependency.classpath"/>
+                                    <path refid="maven.test.classpath" />
+                                    <path refid="maven.compile.classpath" />
+                                    <path refid="maven.dependency.classpath" />
                                 </path>
                                 <taskdef name="openjpac" classname="org.apache.openjpa.ant.PCEnhancerTask">
-                                    <classpath refid="cp"/>
+                                    <classpath refid="cp" />
                                 </taskdef>
                                 <fileset id="enhance.path.ref" dir="../core/target/classes">
-                                    <include name="**/JsonWorkflowJob.class"/>
-                                    <include name="**/JsonWorkflowAction.class"/>
-                                    <include name="**/JsonCoordinatorJob.class"/>
-                                    <include name="**/JsonCoordinatorAction.class"/>
-                                    <include name="**/JsonSLAEvent.class"/>
-                                    <include name="**/JsonBundleJob.class"/>
+                                    <include name="**/JsonWorkflowJob.class" />
+                                    <include name="**/JsonWorkflowAction.class" />
+                                    <include name="**/JsonCoordinatorJob.class" />
+                                    <include name="**/JsonCoordinatorAction.class" />
+                                    <include name="**/JsonSLAEvent.class" />
+                                    <include name="**/JsonBundleJob.class" />
 
-                                    <include name="**/WorkflowJobBean.class"/>
-                                    <include name="**/WorkflowActionBean.class"/>
-                                    <include name="**/CoordinatorJobBean.class"/>
-                                    <include name="**/CoordinatorActionBean.class"/>
-                                    <include name="**/SLAEventBean.class"/>
-                                    <include name="**/BundleJobBean.class"/>
-                                    <include name="**/BundleActionBean.class"/>
+                                    <include name="**/WorkflowJobBean.class" />
+                                    <include name="**/WorkflowActionBean.class" />
+                                    <include name="**/CoordinatorJobBean.class" />
+                                    <include name="**/CoordinatorActionBean.class" />
+                                    <include name="**/SLAEventBean.class" />
+                                    <include name="**/BundleJobBean.class" />
+                                    <include name="**/BundleActionBean.class" />
                                 </fileset>
                                 <openjpac>
-                                    <classpath refid="cp"/>
-                                    <fileset refid="enhance.path.ref"/>
+                                    <classpath refid="cp" />
+                                    <fileset refid="enhance.path.ref" />
                                 </openjpac>
                             </target>
                         </configuration>
