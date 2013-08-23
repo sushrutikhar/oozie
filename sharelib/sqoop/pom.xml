@@ -42,6 +42,7 @@
             <groupId>org.apache.sqoop</groupId>
             <artifactId>sqoop</artifactId>
             <scope>compile</scope>
+            <classifier>hadoop100</classifier>
             <exclusions>
                 <exclusion>
                     <groupId>org.apache.hadoop</groupId>
