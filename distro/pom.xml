@@ -21,11 +21,11 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>3.3.2.6-SNAPSHOT</version>
+        <version>3.3.2.6</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-distro</artifactId>
-    <version>3.3.2.6-SNAPSHOT</version>
+    <version>3.3.2.6</version>
     <description>Apache Oozie Distro</description>
     <name>Apache Oozie Distro</name>
     <packaging>jar</packaging>
