@@ -204,7 +204,7 @@ public class CallableQueueService implements Service, Instrumentable {
         @Override
         public String toString() {
             StringBuilder sb = new StringBuilder();
-            sb.append("[").append(getElement().getKey()).append("] priority=").append(getPriority()).append(" delay=").
+            sb.append("[").append(getElement()).append("] priority=").append(getPriority()).append(" delay=").
                     append(getDelay(TimeUnit.MILLISECONDS));
             return sb.toString();
         }
