@@ -70,6 +70,7 @@ public class CallableQueueService implements Service, Instrumentable, Callable {
     private static final String INSTR_QUEUED_COUNTER = "queued";
     private static final String INSTR_QUEUE_SIZE_SAMPLER = "queue.size";
     private static final String INSTR_THREADS_ACTIVE_SAMPLER = "threads.active";
+    private static final String INSTR_RECOVERY_COUNTER = "recovery";
 
     public static final String CONF_PREFIX = Service.CONF_PREFIX + "CallableQueueService.";
 
@@ -148,6 +149,7 @@ public class CallableQueueService implements Service, Instrumentable, Callable {
         for (QueueElement ele : queue) {
             long delay = ele.getDelay(TimeUnit.MILLISECONDS);
             if (delay < 0 && -delay > recoveryThreshold) {
+                incrCounter(INSTR_RECOVERY_COUNTER, 1);
                 log.warn("Found element with delay > threshold: " + ele + ", threshold:" + recoveryThreshold);
                 log.warn("Re-initialising CallableQueue");
                 Services.get().setService(getClass());
