@@ -30,6 +30,7 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.XCommand;
 import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.XCallable;
+import org.junit.Assert;
 
 public class TestCallableQueueService extends XTestCase {
     static AtomicLong EXEC_ORDER = new AtomicLong();
@@ -739,6 +740,25 @@ public class TestCallableQueueService extends XTestCase {
         assertTrue(initialCallable.executed > 0);
         assertTrue(intCallable.executed > 0);
         assertTrue(intCallable.executed > callables.get(5).executed);
+    }
+
+    public void testRecovery() throws Exception {
+        Services.get().destroy();
+        setSystemProperty(CallableQueueService.CONF_THREADS, "1");
+        setSystemProperty(CallableQueueService.CONF_CALLABLE_CONCURRENCY, "1");
+        setSystemProperty(CallableQueueService.CONF_CALLABLE_RECOVERY_ENABLE, "true");
+        setSystemProperty(CallableQueueService.CONF_CALLABLE_RECOVERY_THRESHOLD, "0");
+        new Services().init();
+
+        CallableQueueService queueservice = Services.get().get(CallableQueueService.class);
+        MyCallable longCallable = new MyCallable("my_callable", 1, 100);
+        MyCallable qCallable = new MyCallable("my_callable", 1, 5);
+        queueservice.queue(longCallable);
+        queueservice.queue(qCallable, 5);
+        Thread.sleep(10);
+        queueservice.call();
+        queueservice = Services.get().get(CallableQueueService.class);
+        assertEquals(0, queueservice.getQueueDump().size());
     }
 
     /*

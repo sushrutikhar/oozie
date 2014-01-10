@@ -27,11 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Map.Entry;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.hadoop.conf.Configuration;
@@ -43,6 +39,7 @@ import org.apache.oozie.util.PriorityDelayQueue;
 import org.apache.oozie.util.XCallable;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.PriorityDelayQueue.QueueElement;
+import org.python.modules.thread.thread;
 
 /**
  * The callable queue service queues {@link XCallable}s for asynchronous execution.
@@ -65,7 +62,7 @@ import org.apache.oozie.util.PriorityDelayQueue.QueueElement;
  * execution of Commands via a ThreadPool. Sets up a Delayed Queue to handle actions which will be ready for execution
  * sometime in the future.
  */
-public class CallableQueueService implements Service, Instrumentable {
+public class CallableQueueService implements Service, Instrumentable, Callable {
     private static final String INSTRUMENTATION_GROUP = "callablequeue";
     private static final String INSTR_IN_QUEUE_TIME_TIMER = "time.in.queue";
     private static final String INSTR_EXECUTED_COUNTER = "executed";
@@ -83,6 +80,10 @@ public class CallableQueueService implements Service, Instrumentable {
     public static final String CONF_CALLABLE_INTERRUPT_TYPES = CONF_PREFIX + "InterruptTypes";
     public static final String CONF_CALLABLE_INTERRUPT_MAP_MAX_SIZE = CONF_PREFIX + "InterruptMapMaxSize";
 
+    public static final String CONF_CALLABLE_RECOVERY_ENABLE = CONF_PREFIX + "recovery.enable";
+    private static final String CONF_CALLABLE_RECOVERY_INTERVAL = CONF_PREFIX + "recovery.interval";
+    public static final String CONF_CALLABLE_RECOVERY_THRESHOLD = CONF_PREFIX + "recovery.threshold";
+
     public static final int CONCURRENCY_DELAY = 500;
 
     public static final int SAFE_MODE_DELAY = 60000;
@@ -98,6 +99,8 @@ public class CallableQueueService implements Service, Instrumentable {
     private int interruptMapMaxSize;
 
     private int maxCallableConcurrency;
+
+    private long recoveryThreshold;
 
     private boolean callableBegin(XCallable<?> callable) {
         synchronized (activeCallables) {
@@ -137,6 +140,21 @@ public class CallableQueueService implements Service, Instrumentable {
                 return i < maxCallableConcurrency;
             }
         }
+    }
+
+    @Override
+    public Object call() throws Exception {
+        log.info("Running CallableQueueService.recovery() queue size: " + queue.size());
+        for (QueueElement ele : queue) {
+            long delay = ele.getDelay(TimeUnit.MILLISECONDS);
+            if (delay < 0 && -delay > recoveryThreshold) {
+                log.warn("Found element with delay > threshold: " + ele + ", threshold:" + recoveryThreshold);
+                log.warn("Re-initialising CallableQueue");
+                Services.get().setService(getClass());
+                break;
+            }
+        }
+        return null;
     }
 
     // Callables are wrapped with the this wrapper for execution, for logging
@@ -506,6 +524,13 @@ public class CallableQueueService implements Service, Instrumentable {
         }
 
         maxCallableConcurrency = conf.getInt(CONF_CALLABLE_CONCURRENCY, 3);
+
+        if (conf.getBoolean(CONF_CALLABLE_RECOVERY_ENABLE, false)) {
+            recoveryThreshold = conf.getLong(CONF_CALLABLE_RECOVERY_THRESHOLD, 300) * 1000;
+            log.info("Scheduling recovery service for callable queue");
+            long freq = conf.getLong(CONF_CALLABLE_RECOVERY_INTERVAL, 300);
+            services.get(SchedulerService.class).schedule(this, freq, freq, SchedulerService.Unit.SEC);
+        }
     }
 
     /**
@@ -761,5 +786,4 @@ public class CallableQueueService implements Service, Instrumentable {
         }
         return list;
     }
-
 }
