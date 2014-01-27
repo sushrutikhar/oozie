@@ -17,11 +17,12 @@
  */
 package org.apache.oozie;
 
-import java.io.DataInput;
-import java.io.DataOutput;
-import java.io.IOException;
-import java.sql.Timestamp;
-import java.util.Date;
+import org.apache.hadoop.io.Writable;
+import org.apache.oozie.client.CoordinatorJob;
+import org.apache.oozie.client.rest.JsonCoordinatorJob;
+import org.apache.oozie.util.DateUtils;
+import org.apache.oozie.util.WritableUtils;
+import org.apache.openjpa.persistence.jdbc.Index;
 
 import javax.persistence.Basic;
 import javax.persistence.Column;
@@ -29,13 +30,11 @@ import javax.persistence.Entity;
 import javax.persistence.Lob;
 import javax.persistence.NamedQueries;
 import javax.persistence.NamedQuery;
-
-import org.apache.hadoop.io.Writable;
-import org.apache.oozie.client.CoordinatorJob;
-import org.apache.oozie.client.rest.JsonCoordinatorJob;
-import org.apache.oozie.util.DateUtils;
-import org.apache.oozie.util.WritableUtils;
-import org.apache.openjpa.persistence.jdbc.Index;
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.Date;
 
 @Entity
 @NamedQueries( {
@@ -52,6 +51,8 @@ import org.apache.openjpa.persistence.jdbc.Index;
         @NamedQuery(name = "GET_COORD_JOB", query = "select OBJECT(w) from CoordinatorJobBean w where w.id = :id"),
 
         @NamedQuery(name = "GET_COORD_JOBS_PENDING", query = "select OBJECT(w) from CoordinatorJobBean w where w.pending = 1 order by w.lastModifiedTimestamp"),
+
+        @NamedQuery(name = "GET_COORD_JOBS_CHANGED", query = "select w.id from CoordinatorJobBean w where w.pending = 1 AND w.doneMaterialization = 1 AND w.lastModifiedTimestamp >= :lastModifiedTime"),
 
         @NamedQuery(name = "GET_COORD_JOBS_COUNT", query = "select count(w) from CoordinatorJobBean w"),
 
