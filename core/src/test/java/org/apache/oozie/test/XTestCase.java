@@ -491,6 +491,24 @@ public abstract class XTestCase extends TestCase {
     }
 
     /**
+     * Return the URI for a test file. The returned value is the testDir + concatenated URI.
+     *
+     * @return the test working directory path, it is always an absolute path and appends the relative path. The
+     * reason for the manual parsing instead of an actual File.toURI is because Oozie tests use tokens ${}
+     * frequently. Something like URI("c:/temp/${HOUR}").toString() will generate escaped values that will break tests
+     */
+    protected String getTestCaseFileUri(String relativeUri) {
+        String uri = new File(testCaseDir).toURI().toString();
+
+        // truncates '/' if the testCaseDir was provided with a fullpath ended with separator
+        if (uri.endsWith("/")){
+            uri = uri.substring(0, uri.length() -1);
+        }
+
+        return uri + "/" + relativeUri;
+    }
+
+    /**
      * Reset changed system properties to their original values. <p/> Called from {@link #tearDown}.
      */
     private void resetSystemProperties() {
