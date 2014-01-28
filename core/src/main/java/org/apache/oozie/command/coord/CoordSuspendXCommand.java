@@ -17,9 +17,6 @@
  */
 package org.apache.oozie.command.coord;
 
-import java.util.Date;
-import java.util.List;
-
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
@@ -42,6 +39,9 @@ import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.StatusUtils;
 
+import java.util.Date;
+import java.util.List;
+
 /**
  * Suspend coordinator job and actions.
  *
@@ -58,25 +58,21 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         this.jobId = ParamChecker.notEmpty(id, "id");
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#getEntityKey()
-     */
     @Override
     public String getEntityKey() {
         return jobId;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#isLockRequired()
-     */
+    @Override
+    public String getKey() {
+        return getName() + "_" + jobId;
+    }
+
     @Override
     protected boolean isLockRequired() {
         return true;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#loadState()
-     */
     @Override
     protected void loadState() throws CommandException {
         super.eagerLoadState();
@@ -96,9 +92,6 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         LogUtils.setLogInfo(this.coordJob, logInfo);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#verifyPrecondition()
-     */
     @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
         super.eagerVerifyPrecondition();
@@ -111,9 +104,6 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.SuspendTransitionXCommand#suspendChildren()
-     */
     @Override
     public void suspendChildren() throws CommandException {
         try {
@@ -154,9 +144,6 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#notifyParent()
-     */
     @Override
     public void notifyParent() throws CommandException {
         // update bundle action
@@ -166,9 +153,6 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#updateJob()
-     */
     @Override
     public void updateJob() {
         InstrumentUtils.incrJobCounter(getName(), 1, getInstrumentation());
@@ -178,9 +162,6 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         updateList.add(coordJob);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.SuspendTransitionXCommand#performWrites()
-     */
     @Override
     public void performWrites() throws CommandException {
         try {
@@ -198,9 +179,6 @@ public class CoordSuspendXCommand extends SuspendTransitionXCommand {
         updateList.add(action);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#getJob()
-     */
     @Override
     public Job getJob() {
         return coordJob;
