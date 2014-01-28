@@ -57,7 +57,9 @@ import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.SLAEventInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobUpdateJPAExecutor;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
@@ -549,6 +551,12 @@ public abstract class XDataTestCase extends XFsTestCase {
             assertNotNull(jpaService);
             CoordActionInsertJPAExecutor coordActionInsertExecutor = new CoordActionInsertJPAExecutor(action);
             jpaService.execute(coordActionInsertExecutor);
+
+            if (wfId != null) {
+                WorkflowJobBean wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(wfId));
+                wfJob.setParentId(action.getId());
+                jpaService.execute(new WorkflowJobUpdateJPAExecutor(wfJob));
+            }
         }
         catch (JPAExecutorException je) {
             je.printStackTrace();

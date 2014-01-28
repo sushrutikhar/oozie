@@ -17,10 +17,6 @@
  */
 package org.apache.oozie.command.wf;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
@@ -28,7 +24,6 @@ import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
-import org.apache.oozie.command.coord.CoordActionUpdateXCommand;
 import org.apache.oozie.executor.jpa.BulkUpdateInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionRetryManualGetJPAExecutor;
@@ -41,6 +36,10 @@ import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class SuspendXCommand extends WorkflowXCommand<Void> {
     private final String wfid;
@@ -73,8 +72,7 @@ public class SuspendXCommand extends WorkflowXCommand<Void> {
             throw new CommandException(je);
         }
         finally {
-            // update coordinator action
-            new CoordActionUpdateXCommand(wfJobBean).call();
+            updateParentIfNecessary(wfJobBean);
         }
         return null;
     }
