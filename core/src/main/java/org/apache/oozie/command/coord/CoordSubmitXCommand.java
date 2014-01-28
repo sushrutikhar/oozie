@@ -17,35 +17,15 @@
  */
 package org.apache.oozie.command.coord;
 
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.io.StringReader;
-import java.io.StringWriter;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-
-import javax.xml.transform.stream.StreamSource;
-import javax.xml.validation.Validator;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.CoordinatorJob;
+import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.client.Job;
 import org.apache.oozie.client.OozieClient;
-import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.SubmitTransitionXCommand;
 import org.apache.oozie.command.bundle.BundleStatusUpdateXCommand;
@@ -60,10 +40,10 @@ import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.SchemaService;
+import org.apache.oozie.service.SchemaService.SchemaName;
 import org.apache.oozie.service.Service;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
-import org.apache.oozie.service.SchemaService.SchemaName;
 import org.apache.oozie.service.UUIDService.ApplicationType;
 import org.apache.oozie.util.ConfigUtils;
 import org.apache.oozie.util.DateUtils;
@@ -84,6 +64,25 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 import org.xml.sax.SAXException;
+
+import javax.xml.transform.stream.StreamSource;
+import javax.xml.validation.Validator;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * This class provides the functionalities to resolve a coordinator job XML and write the job information into a DB
@@ -314,8 +313,8 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
      */
     private void validateCoordinatorJob() {
         // check if startTime < endTime
-        if (coordJob.getStartTime().after(coordJob.getEndTime())) {
-            throw new IllegalArgumentException("Coordinator Start Time cannot be greater than End Time.");
+        if (!coordJob.getStartTime().before(coordJob.getEndTime())) {
+            throw new IllegalArgumentException("Coordinator Start Time must be earlier than End Time.");
         }
     }
 
@@ -768,7 +767,7 @@ public class CoordSubmitXCommand extends SubmitTransitionXCommand {
     /**
      * Resolve input-events/data-in and output-events/data-out tags.
      *
-     * @param eJob : Job element
+     * @param eJobOrg : Job element
      * @throws CoordinatorJobException thrown if failed to resolve input and output events
      */
     @SuppressWarnings("unchecked")

@@ -17,12 +17,6 @@
  */
 package org.apache.oozie.service;
 
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.BundleActionBean;
 import org.apache.oozie.BundleJobBean;
@@ -60,7 +54,12 @@ import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Attribute;
 import org.jdom.Element;
-import org.jdom.JDOMException;
+
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 /**
  * The Recovery Service checks for pending actions and premater coordinator jobs older than a configured age and then
@@ -248,7 +247,7 @@ public class RecoveryService implements Service {
                                 + caction.getId());
                     }
                     else if (caction.getStatus() == CoordinatorActionBean.Status.SUSPENDED) {
-                        if (caction.getExternalId() != null) {
+                        if (caction.getExternalId() != null && caction.getPending() > 1) {
                             queueCallable(new SuspendXCommand(caction.getExternalId()));
                             log.debug("Recover a SUSPENDED coord action and resubmit SuspendXCommand :"
                                     + caction.getId());

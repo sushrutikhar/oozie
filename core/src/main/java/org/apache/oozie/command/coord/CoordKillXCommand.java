@@ -134,7 +134,7 @@ public class CoordKillXCommand extends KillTransitionXCommand {
                 }
             }
         }
-
+        coordJob.setDoneMaterialization();
         updateList.add(coordJob);
 
         LOG.debug("Killed coord actions for the coordinator=[{0}]", jobId);
@@ -154,9 +154,6 @@ public class CoordKillXCommand extends KillTransitionXCommand {
         updateList.add(coordJob);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.KillTransitionXCommand#performWrites()
-     */
     @Override
     public void performWrites() throws CommandException {
         try {
@@ -167,9 +164,6 @@ public class CoordKillXCommand extends KillTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#getJob()
-     */
     @Override
     public Job getJob() {
         return coordJob;

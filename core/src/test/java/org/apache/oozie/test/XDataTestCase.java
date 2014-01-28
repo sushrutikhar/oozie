@@ -57,7 +57,9 @@ import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.SLAEventInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobUpdateJPAExecutor;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
@@ -171,6 +173,31 @@ public abstract class XDataTestCase extends XFsTestCase {
 
         return coordJob;
 
+    }
+
+    protected CoordinatorJobBean addRecordToCoordJobTable(String appXml) throws Exception {
+        Date start = DateUtils.parseDateOozieTZ("2009-02-01T01:00Z");
+        Date end = DateUtils.parseDateOozieTZ("2009-02-03T23:59Z");
+        appXml = appXml.replaceAll("#start", DateUtils.formatDateOozieTZ(start));
+        appXml = appXml.replaceAll("#end", DateUtils.formatDateOozieTZ(end));
+        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        writeToFile(appXml, appPath, "coordinator.xml");
+        CoordinatorJobBean coordJob = createCoordBean(appPath, appXml, CoordinatorJob.Status.PREP, start, end, false,
+                false, 0);
+
+        try {
+            JPAService jpaService = Services.get().get(JPAService.class);
+            assertNotNull(jpaService);
+            CoordJobInsertJPAExecutor coordInsertCmd = new CoordJobInsertJPAExecutor(coordJob);
+            jpaService.execute(coordInsertCmd);
+        }
+        catch (JPAExecutorException je) {
+            je.printStackTrace();
+            fail("Unable to insert the test coord job record to table");
+            throw je;
+        }
+
+        return coordJob;
     }
 
     /**
@@ -402,6 +429,11 @@ public abstract class XDataTestCase extends XFsTestCase {
         Path appPath = new Path(getFsTestCaseDir(), "coord");
         String appXml = writeCoordXml(appPath, testFileName);
 
+        return createCoordBean(appPath, appXml, status, start, end, pending, doneMatd, lastActionNum);
+    }
+
+    private CoordinatorJobBean createCoordBean(Path appPath, String appXml, CoordinatorJob.Status status, Date start,
+            Date end, boolean pending, boolean doneMatd, int lastActionNum) throws Exception {
         CoordinatorJobBean coordJob = new CoordinatorJobBean();
         coordJob.setId(Services.get().get(UUIDService.class).generateId(ApplicationType.COORDINATOR));
         coordJob.setAppName("COORD-TEST");
@@ -549,6 +581,12 @@ public abstract class XDataTestCase extends XFsTestCase {
             assertNotNull(jpaService);
             CoordActionInsertJPAExecutor coordActionInsertExecutor = new CoordActionInsertJPAExecutor(action);
             jpaService.execute(coordActionInsertExecutor);
+
+            if (wfId != null) {
+                WorkflowJobBean wfJob = jpaService.execute(new WorkflowJobGetJPAExecutor(wfId));
+                wfJob.setParentId(action.getId());
+                jpaService.execute(new WorkflowJobUpdateJPAExecutor(wfJob));
+            }
         }
         catch (JPAExecutorException je) {
             je.printStackTrace();

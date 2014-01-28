@@ -72,7 +72,7 @@ public class TestCoordJobsToBeMaterializedJPAExecutor extends XFsTestCase {
         try {
             Date d1 = new Date();
             Date d2 = new Date(d1.getTime() + 1000);
-            CoordJobsToBeMaterializedJPAExecutor cmatcmd = new CoordJobsToBeMaterializedJPAExecutor(d2, 50);
+            CoordJobsToBeMaterializedJPAExecutor cmatcmd = new CoordJobsToBeMaterializedJPAExecutor(d2, 50, 0);
             List<CoordinatorJobBean> jobList = jpaService.execute(cmatcmd);
 
             if (jobList.size() == 0) {
@@ -80,7 +80,7 @@ public class TestCoordJobsToBeMaterializedJPAExecutor extends XFsTestCase {
             }
             // Assumption: no other older records are there
             d2 = new Date(d1.getTime() - 86400000L * 365L);
-            CoordJobsToBeMaterializedJPAExecutor cmatcmdnew = new CoordJobsToBeMaterializedJPAExecutor(d2, 50);
+            CoordJobsToBeMaterializedJPAExecutor cmatcmdnew = new CoordJobsToBeMaterializedJPAExecutor(d2, 50, 0);
             jobList = jpaService.execute(cmatcmdnew);
 
             /*

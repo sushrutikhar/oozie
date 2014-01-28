@@ -17,11 +17,6 @@
  */
 package org.apache.oozie.command.wf;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
-import javax.servlet.jsp.el.ELException;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.FaultInjection;
@@ -33,10 +28,10 @@ import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.action.control.ControlNodeActionExecutor;
 import org.apache.oozie.client.OozieClient;
-import org.apache.oozie.client.WorkflowAction;
-import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.SLAEvent.SlaAppType;
 import org.apache.oozie.client.SLAEvent.Status;
+import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.JsonBean;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
@@ -55,6 +50,11 @@ import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.util.db.SLADbXOperations;
+
+import javax.servlet.jsp.el.ELException;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 public class ActionStartXCommand extends ActionXCommand<Void> {
     public static final String EL_ERROR = "EL_ERROR";
@@ -274,8 +274,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 case FAILED:
                     try {
                         failJob(context);
-                        // update coordinator action
-                        new CoordActionUpdateXCommand(wfJob, 3).call();
+                        updateParentIfNecessary(wfJob, 3);
                         new WfEndXCommand(wfJob).call(); // To delete the WF temp dir
                         SLAEventBean slaEvent1 = SLADbXOperations.createStatusEvent(wfAction.getSlaXml(), wfAction.getId(), Status.FAILED,
                                 SlaAppType.WORKFLOW_ACTION);

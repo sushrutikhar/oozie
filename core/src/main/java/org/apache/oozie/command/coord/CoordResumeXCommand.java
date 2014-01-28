@@ -17,9 +17,6 @@
  */
 package org.apache.oozie.command.coord;
 
-import java.util.Date;
-import java.util.List;
-
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
@@ -41,6 +38,9 @@ import org.apache.oozie.util.InstrumentUtils;
 import org.apache.oozie.util.LogUtils;
 import org.apache.oozie.util.ParamChecker;
 
+import java.util.Date;
+import java.util.List;
+
 /**
  * Resume coordinator job and actions.
  *
@@ -57,25 +57,21 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         this.jobId = ParamChecker.notEmpty(id, "id");
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#getEntityKey()
-     */
     @Override
     public String getEntityKey() {
         return jobId;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#isLockRequired()
-     */
+    @Override
+    public String getKey() {
+        return getName() + "_" + this.jobId;
+    }
+
     @Override
     protected boolean isLockRequired() {
         return true;
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#loadState()
-     */
     @Override
     protected void loadState() throws CommandException {
         jpaService = Services.get().get(JPAService.class);
@@ -93,9 +89,6 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         LogUtils.setLogInfo(coordJob, logInfo);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.XCommand#verifyPrecondition()
-     */
     @Override
     protected void verifyPrecondition() throws CommandException, PreconditionException {
         if (coordJob.getStatus() != CoordinatorJob.Status.SUSPENDED && coordJob.getStatus() != CoordinatorJob.Status.SUSPENDEDWITHERROR && coordJob.getStatus() != Job.Status.PREPSUSPENDED) {
@@ -104,9 +97,6 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#updateJob()
-     */
     @Override
     public void updateJob() {
         InstrumentUtils.incrJobCounter(getName(), 1, getInstrumentation());
@@ -117,9 +107,6 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         updateList.add(coordJob);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.ResumeTransitionXCommand#resumeChildren()
-     */
     @Override
     public void resumeChildren() throws CommandException {
         try {
@@ -160,9 +147,6 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#notifyParent()
-     */
     @Override
     public void notifyParent() throws CommandException {
         // update bundle action
@@ -172,9 +156,6 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.ResumeTransitionXCommand#performWrites()
-     */
     @Override
     public void performWrites() throws CommandException {
         try {
@@ -192,9 +173,6 @@ public class CoordResumeXCommand extends ResumeTransitionXCommand {
         updateList.add(action);
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.command.TransitionXCommand#getJob()
-     */
     @Override
     public Job getJob() {
         return coordJob;

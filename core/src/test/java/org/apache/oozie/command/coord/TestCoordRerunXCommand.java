@@ -17,17 +17,6 @@
  */
 package org.apache.oozie.command.coord;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.Reader;
-import java.io.Writer;
-import java.util.Date;
-import java.util.List;
-import java.util.Properties;
-import java.util.regex.Matcher;
-
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.CoordinatorActionBean;
@@ -35,10 +24,10 @@ import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
+import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.client.Job;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.OozieClientException;
-import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.coord.CoordELFunctions;
@@ -62,6 +51,17 @@ import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
 import org.jdom.JDOMException;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.Reader;
+import java.io.Writer;
+import java.util.Date;
+import java.util.List;
+import java.util.Properties;
+import java.util.regex.Matcher;
 
 public class TestCoordRerunXCommand extends XDataTestCase {
     private Services services;
@@ -121,6 +121,7 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         store2.beginTrx();
         CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+        assertNull(action2.getExternalId());
         store2.commitTrx();
         store2.closeTrx();
     }

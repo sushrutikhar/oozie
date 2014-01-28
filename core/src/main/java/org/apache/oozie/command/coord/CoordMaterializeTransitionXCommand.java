@@ -188,6 +188,11 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
                     + " job is not in PREP or RUNNING but in " + coordJob.getStatus());
         }
 
+        if (coordJob.isDoneMaterialization()) {
+            throw new PreconditionException(ErrorCode.E1100, "CoordMaterializeTransitionXCommand for jobId =" + jobId
+                    + " job is already materialized");
+        }
+
         if (coordJob.getNextMaterializedTimestamp() != null
                 && coordJob.getNextMaterializedTimestamp().compareTo(coordJob.getEndTimestamp()) >= 0) {
             throw new PreconditionException(ErrorCode.E1100, "CoordMaterializeTransitionXCommand for jobId=" + jobId
@@ -243,9 +248,11 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
             updateJobMaterializeInfo(coordJob);
         }
         catch (CommandException ex) {
-            LOG.warn("Exception occurs:" + ex.getMessage() + " Making the job failed ", ex);
+            LOG.warn("Exception occurred:" + ex.getMessage() + " Making the job failed ", ex);
             coordJob.setStatus(Job.Status.FAILED);
             coordJob.resetPending();
+            // remove any materialized actions and slaEvents
+            insertList.clear();
         }
         catch (Exception e) {
             LOG.error("Excepion thrown :", e);
@@ -354,14 +361,14 @@ public class CoordMaterializeTransitionXCommand extends MaterializeTransitionXCo
         actionBean.setActionXml(actionXml);
 
         insertList.add(actionBean);
-        writeActionRegistration(actionXml, actionBean);
+        writeActionSlaRegistration(actionXml, actionBean);
 
         // TODO: time 100s should be configurable
         queue(new CoordActionNotificationXCommand(actionBean), 100);
         queue(new CoordActionInputCheckXCommand(actionBean.getId(), actionBean.getJobId()), 100);
     }
 
-    private void writeActionRegistration(String actionXml, CoordinatorActionBean actionBean) throws Exception {
+    private void writeActionSlaRegistration(String actionXml, CoordinatorActionBean actionBean) throws Exception {
         Element eAction = XmlUtils.parseXml(actionXml);
         Element eSla = eAction.getChild("action", eAction.getNamespace()).getChild("info", eAction.getNamespace("sla"));
         SLAEventBean slaEvent = SLADbOperations.createSlaRegistrationEvent(eSla, actionBean.getId(), SlaAppType.COORDINATOR_ACTION, coordJob
