@@ -17,23 +17,23 @@
  */
 package org.apache.oozie.executor.jpa;
 
+import org.apache.oozie.CoordinatorJobBean;
+import org.apache.oozie.ErrorCode;
+import org.apache.oozie.util.ParamChecker;
+
+import javax.persistence.EntityManager;
+import javax.persistence.Query;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-
-import javax.persistence.EntityManager;
-import javax.persistence.Query;
-
-import org.apache.oozie.CoordinatorJobBean;
-import org.apache.oozie.ErrorCode;
-import org.apache.oozie.util.ParamChecker;
 
 /**
  * JPA command to get coordinator jobs which are qualify for Materialization.
  */
 public class CoordJobsToBeMaterializedJPAExecutor implements JPAExecutor<List<CoordinatorJobBean>> {
 
+    private final int offset;
     private Date dateInput;
     private int limit;
     private List<CoordinatorJobBean> jobList;
@@ -42,10 +42,11 @@ public class CoordJobsToBeMaterializedJPAExecutor implements JPAExecutor<List<Co
      * @param date
      * @param limit
      */
-    public CoordJobsToBeMaterializedJPAExecutor(Date date, int limit) {
+    public CoordJobsToBeMaterializedJPAExecutor(Date date, int limit, int offset) {
         ParamChecker.notNull(date, "Coord Job Materialization Date");
         this.dateInput = date;
         this.limit = limit;
+        this.offset = offset;
         jobList = new ArrayList<CoordinatorJobBean>();
     }
 
@@ -60,6 +61,9 @@ public class CoordJobsToBeMaterializedJPAExecutor implements JPAExecutor<List<Co
             q.setParameter("matTime", new Timestamp(this.dateInput.getTime()));
             if (limit > 0) {
                 q.setMaxResults(limit);
+            }
+            if (offset > 0) {
+                q.setFirstResult(offset - 1);
             }
 
             List<CoordinatorJobBean> cjBeans = q.getResultList();

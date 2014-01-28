@@ -17,12 +17,10 @@
  */
 package org.apache.oozie.service;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.Date;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.CoordinatorJobBean;
+import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.client.CoordinatorJob.Timeunit;
@@ -30,11 +28,16 @@ import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetRunningActionsCountJPAExecutor;
 import org.apache.oozie.service.CoordMaterializeTriggerService.CoordMaterializeTriggerRunnable;
 import org.apache.oozie.service.UUIDService.ApplicationType;
+import org.apache.oozie.store.CoordinatorStore;
 import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
+
+import java.io.IOException;
+import java.io.Reader;
+import java.util.Date;
 
 public class TestCoordMaterializeTriggerService extends XDataTestCase {
     private Services services;
@@ -100,6 +103,45 @@ public class TestCoordMaterializeTriggerService extends XDataTestCase {
         CoordJobGetJPAExecutor coordGetCmd = new CoordJobGetJPAExecutor(job.getId());
         CoordinatorJobBean coordJob = jpaService.execute(coordGetCmd);
         assertEquals(CoordinatorJob.Status.RUNNING, coordJob.getStatus());
+    }
+
+    public void testCoordMaterializeTriggerService3() throws Exception {
+        Services.get().destroy();
+        setSystemProperty(CoordMaterializeTriggerService.CONF_MATERIALIZATION_SYSTEM_LIMIT, "1");
+        services = new Services();
+        services.init();
+
+        Date start = new Date();
+        Date end = new Date(start.getTime() + 3600 * 5 * 1000);
+        CoordinatorJobBean job1 = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false, false, 1);
+        addRecordToCoordActionTable(job1.getId(), 2, CoordinatorAction.Status.WAITING,
+                "coord-action-get.xml", 0);
+        job1.setMatThrottling(1);
+        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+        store.beginTrx();
+        try {
+            store.updateCoordinatorJob(job1);
+            store.commitTrx();
+        }
+        finally {
+            store.closeTrx();
+        }
+
+        CoordinatorJobBean job2 = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, start, end, false, false, 0);
+        CoordinatorJobBean job3 = addRecordToCoordJobTable(CoordinatorJob.Status.PREP, start, end, false, false, 0);
+
+        sleep(3000);
+        Runnable runnable = new CoordMaterializeTriggerRunnable(3600, 300);
+        runnable.run();
+        sleep(1000);
+
+        JPAService jpaService = Services.get().get(JPAService.class);
+        // second job is beyond limit but still should be picked up
+        job2 = jpaService.execute(new CoordJobGetJPAExecutor(job2.getId()));
+        assertEquals(CoordinatorJob.Status.RUNNING, job2.getStatus());
+        // third job not picked up because limit iteration only twice
+        job3 = jpaService.execute(new CoordJobGetJPAExecutor(job3.getId()));
+        assertEquals(CoordinatorJob.Status.PREP, job3.getStatus());
     }
 
     @Override
