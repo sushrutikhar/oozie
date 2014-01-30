@@ -24,6 +24,8 @@ import org.apache.hadoop.mapred.JobClient;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
+import org.apache.oozie.BundleActionBean;
+import org.apache.oozie.BundleJobBean;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorEngine;
 import org.apache.oozie.CoordinatorJobBean;
@@ -37,13 +39,16 @@ import org.apache.oozie.action.hadoop.MapperReducerForTest;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.CoordinatorJob.Execution;
+import org.apache.oozie.client.Job;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.wf.ActionXCommand;
 import org.apache.oozie.command.wf.ActionXCommand.ActionExecutorContext;
+import org.apache.oozie.executor.jpa.BundleActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
@@ -234,14 +239,100 @@ public class TestRecoveryService extends XDataTestCase {
         assertTrue(launcherJob.isSuccessful());
         assertTrue(LauncherMapper.hasIdSwap(launcherJob));
     }
-    
 
     /**
-     * Tests functionality of the Recovery Service Runnable command. </p> Insert a coordinator job with RUNNING and
-     * action with SUBMITTED. Then, runs the recovery runnable and ensures the action status changes to RUNNING.
-     *
+     * If the bundle action is in PREP state and coord is not yet created, recovery should submit new coord
      * @throws Exception
      */
+    public void testBundleRecoveryCoordCreate() throws Exception {
+        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+        final BundleActionBean bundleAction;
+        final BundleJobBean bundle;
+        store.beginTrx();
+        try {
+            bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
+            bundleAction = addRecordToBundleActionTable(bundle.getId(), "coord1", 1, Job.Status.PREP);
+            store.commitTrx();
+        }
+        finally {
+            store.closeTrx();
+        }
+        final JPAService jpaService = Services.get().get(JPAService.class);
+
+        sleep(3000);
+        Runnable recoveryRunnable = new RecoveryRunnable(0, 1,1);
+        recoveryRunnable.run();
+
+        waitFor(10000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                BundleActionBean mybundleAction =
+                        jpaService.execute(new BundleActionGetJPAExecutor(bundle.getId(), "coord1"));
+                try {
+                    if (mybundleAction.getCoordId() != null) {
+                        CoordinatorJobBean coord = jpaService.execute(new CoordJobGetJPAExecutor(mybundleAction.getCoordId()));
+                        return true;
+                    }
+                } catch (Exception e) {
+                }
+                return false;
+            }
+        });
+
+
+        BundleActionBean mybundleAction = jpaService.execute(new BundleActionGetJPAExecutor(bundle.getId(), "coord1"));
+        assertNotNull(mybundleAction.getCoordId());
+
+        try {
+            jpaService.execute(new CoordJobGetJPAExecutor(mybundleAction.getCoordId()));
+        } catch(Exception e) {
+            e.printStackTrace();
+            fail("Expected coord " + mybundleAction.getCoordId() + " to be created");
+        }
+    }
+
+    /**
+     * If the bundle action is in PREP state and coord is already created, recovery should not submit new coord
+     * @throws Exception
+     */
+    public void testBundleRecoveryCoordExists() throws Exception {
+        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
+        final BundleActionBean bundleAction;
+        final BundleJobBean bundle;
+        final CoordinatorJob coord;
+        store.beginTrx();
+        try {
+            bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
+            coord = addRecordToCoordJobTable(Job.Status.PREP, false, false);
+            bundleAction = addRecordToBundleActionTable(bundle.getId(), coord.getId(), "coord1", 1, Job.Status.PREP);
+            store.commitTrx();
+        }
+        finally {
+            store.closeTrx();
+        }
+        final JPAService jpaService = Services.get().get(JPAService.class);
+
+        sleep(3000);
+        Runnable recoveryRunnable = new RecoveryRunnable(0, 1,1);
+        recoveryRunnable.run();
+
+        waitFor(3000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                BundleActionBean mybundleAction =
+                        jpaService.execute(new BundleActionGetJPAExecutor(bundle.getId(), "coord1"));
+                return !mybundleAction.getCoordId().equals(coord.getId());
+            }
+        });
+
+        BundleActionBean mybundleAction = jpaService.execute(new BundleActionGetJPAExecutor(bundle.getId(), "coord1"));
+        assertEquals(coord.getId(), mybundleAction.getCoordId());
+    }
+
+        /**
+         * Tests functionality of the Recovery Service Runnable command. </p> Insert a coordinator job with RUNNING and
+         * action with SUBMITTED. Then, runs the recovery runnable and ensures the action status changes to RUNNING.
+         *
+         * @throws Exception
+         */
     public void testCoordActionRecoveryServiceForSubmitted() throws Exception {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRecoveryService-C";
         final int actionNum = 1;

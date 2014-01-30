@@ -53,7 +53,9 @@ import org.apache.oozie.client.CoordinatorJob.Timeunit;
 import org.apache.oozie.executor.jpa.BundleActionInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.BundleJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.SLAEventInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionInsertJPAExecutor;
@@ -831,7 +833,7 @@ public abstract class XDataTestCase extends XFsTestCase {
      */
     protected BundleActionBean addRecordToBundleActionTable(String jobId, String coordName, int pending,
             Job.Status status) throws Exception {
-        BundleActionBean action = createBundleAction(jobId, coordName, pending, status);
+        BundleActionBean action = createBundleAction(jobId, null, coordName, pending, status);
 
         try {
             JPAService jpaService = Services.get().get(JPAService.class);
@@ -849,6 +851,41 @@ public abstract class XDataTestCase extends XFsTestCase {
     }
 
     /**
+     * Create bundle action bean and save to db
+     *
+     * @param jobId bundle job id
+     * @param coordId coordinator id
+     * @param coordName coordinator name
+     * @param pending true if action is pending
+     * @param status job status
+     * @return bundle action bean
+     * @throws Exception
+     */
+    protected BundleActionBean addRecordToBundleActionTable(String jobId, String coordId, String coordName, int pending,
+                                                            Job.Status status) throws Exception {
+        BundleActionBean action = createBundleAction(jobId, coordId, coordName, pending, status);
+
+        try {
+            JPAService jpaService = Services.get().get(JPAService.class);
+            assertNotNull(jpaService);
+            BundleActionInsertJPAExecutor bundleActionJPAExecutor = new BundleActionInsertJPAExecutor(action);
+            jpaService.execute(bundleActionJPAExecutor);
+
+            CoordinatorJobBean coordJob = jpaService.execute(new CoordJobGetJPAExecutor(coordId));
+            coordJob.setBundleId(jobId);
+            jpaService.execute(new CoordJobUpdateJPAExecutor(coordJob));
+        }
+        catch (JPAExecutorException ex) {
+            ex.printStackTrace();
+            fail("Unable to insert the test bundle action record to table");
+            throw ex;
+        }
+
+        return action;
+    }
+
+
+    /**
      * Create bundle action bean
      *
      * @param jobId bundle job id
@@ -858,13 +895,14 @@ public abstract class XDataTestCase extends XFsTestCase {
      * @return bundle action bean
      * @throws Exception
      */
-    protected BundleActionBean createBundleAction(String jobId, String coordName, int pending, Job.Status status)
+    protected BundleActionBean createBundleAction(String jobId, String coordId, String coordName, int pending,
+                                                  Job.Status status)
             throws Exception {
         BundleActionBean action = new BundleActionBean();
         action.setBundleId(jobId);
         action.setBundleActionId(jobId + "_" + coordName);
         action.setPending(pending);
-        action.setCoordId(coordName);
+        action.setCoordId(coordId);
         action.setCoordName(coordName);
         action.setStatus(status);
         action.setLastModifiedTime(new Date());
