@@ -1,3 +1,7 @@
+-- Oozie 4.1.0 release (trunk - unreleased)
+
+OOZIE-1675 Adding absolute URI of local cluster to dist cache not working with hadoop version 0.20.2 and before (satish via ryota)
+
 -- Oozie 4.0.1 release (unreleased)
 
 OOZIE-1670 Workflow kill command doesn't kill child job for map-reduce action (puru via rohini)
