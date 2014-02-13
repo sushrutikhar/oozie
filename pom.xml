@@ -158,6 +158,11 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>releases</id>
+            <name>Releases</name>
+            <url>http://maven.scm.corp.inmobi.com/content/repositories/releases/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -171,8 +176,26 @@
         </pluginRepository>
     </pluginRepositories>
 
+    <scm>
+        <connection>scm:git:git://github.com/InMobi/oozie.git</connection>
+        <developerConnection>scm:git:https://github.com/InMobi/oozie.git</developerConnection>
+        <url>scm:git:https://github.com/InMobi/oozie.git</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.inmobi.grid</groupId>
+                <artifactId>s4fs</artifactId>
+                <version>0.1</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-core</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-client</artifactId>
@@ -625,12 +648,6 @@
             </dependency>
 
             <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>5.1.6</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.oracle</groupId>
                 <artifactId>ojdbc6</artifactId>
                 <version>11.2.0.2.0</version>
@@ -749,6 +766,17 @@
                 <version>4.01</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.falcon</groupId>
+                <artifactId>falcon-oozie-el-extension</artifactId>
+                <version>0.4.1-incubating</version>
+            </dependency>
+
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>5.1.18</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
