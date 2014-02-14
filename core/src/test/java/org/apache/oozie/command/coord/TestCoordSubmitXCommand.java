@@ -158,7 +158,7 @@ public class TestCoordSubmitXCommand extends XDataTestCase {
                 + "<configuration> <property> <name>inputA</name> <value>${coord:dataIn('A')}</value> </property> "
                 + "<property> <name>inputB</name> <value>${coord:dataOut('LOCAL_A')}</value> "
                 + "</property></configuration> </workflow> </action> </coordinator-app>";
-        writeToFile(appXml, appPathFile);
+        writeToFile(appXml, appPathFile.getPath());
         conf.set(OozieClient.COORDINATOR_APP_PATH, appPathFile.toURI().toString());
         conf.set(OozieClient.USER_NAME, getTestUser());
         CoordSubmitXCommand sc = new CoordSubmitXCommand(conf);
