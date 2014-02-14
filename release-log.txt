@@ -3,6 +3,7 @@
 OOZIE-1675 Adding absolute URI of local cluster to dist cache not working with hadoop version 0.20.2 and before (satish via ryota)
 OOZIE-1663 Queuedump to display command type (shwethags via virag)
 OOZIE-1664 PollablePriorityDelayQueue.poll() returns elements with +ve delay (shwethags via rohini)
+OOZIE-1314 IllegalArgumentException: wfId cannot be empty (shwethags via virag)
 
 -- Oozie 4.0.1 release (unreleased)
 
