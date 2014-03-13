@@ -21,11 +21,11 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-tests</artifactId>
-        <version>3.3.2.8-SNAPSHOT</version>
+        <version>3.3.2.8</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-tests-pig</artifactId>
-    <version>3.3.2.8-SNAPSHOT</version>
+    <version>3.3.2.8</version>
     <description>Apache Oozie Tests For Pig</description>
     <name>Apache Oozie Tests For Pig</name>
     <packaging>jar</packaging>
