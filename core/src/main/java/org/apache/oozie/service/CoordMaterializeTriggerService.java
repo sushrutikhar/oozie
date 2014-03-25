@@ -25,7 +25,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.command.coord.CoordMaterializeTransitionXCommand;
 import org.apache.oozie.executor.jpa.CoordActionsActiveCountJPAExecutor;
-import org.apache.oozie.executor.jpa.CoordJobGetRunningActionsCountJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobUpdateJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobsToBeMaterializedJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
@@ -110,42 +109,58 @@ public class CoordMaterializeTriggerService implements Service {
         private void runCoordJobMatLookup() {
             XLog.Info.get().clear();
             XLog LOG = XLog.getLog(getClass());
-            JPAService jpaService = Services.get().get(JPAService.class);
             try {
-
                 // get current date
                 Date currDate = new Date(new Date().getTime() + lookupInterval * 1000);
                 // get list of all jobs that have actions that should be materialized.
                 int materializationLimit = Services.get().getConf()
                         .getInt(CONF_MATERIALIZATION_SYSTEM_LIMIT, CONF_MATERIALIZATION_SYSTEM_LIMIT_DEFAULT);
-                CoordJobsToBeMaterializedJPAExecutor cmatcmd = new CoordJobsToBeMaterializedJPAExecutor(currDate,
-                        materializationLimit);
+                // account for under-utilization of limit due to jobs maxed out
+                // against mat_throttle. hence repeat
+                if (materializeCoordJobs(currDate, materializationLimit, LOG)) {
+                    materializeCoordJobs(currDate, materializationLimit, LOG);
+                }
+            }
+
+            catch (Exception ex) {
+                LOG.error("Exception while attempting to materialize coordinator jobs, {0}", ex.getMessage(), ex);
+            }
+        }
+
+        private boolean materializeCoordJobs(Date currDate, int limit, XLog LOG) {
+            try {
+                JPAService jpaService = Services.get().get(JPAService.class);
+                CoordJobsToBeMaterializedJPAExecutor cmatcmd = new CoordJobsToBeMaterializedJPAExecutor(currDate, limit);
                 List<CoordinatorJobBean> materializeJobs = jpaService.execute(cmatcmd);
+                int rejected = 0;
                 LOG.info("CoordMaterializeTriggerService - Curr Date= " + currDate + ", Num jobs to materialize = "
                         + materializeJobs.size());
                 for (CoordinatorJobBean coordJob : materializeJobs) {
                     Services.get().get(InstrumentationService.class).get()
                             .incr(INSTRUMENTATION_GROUP, INSTR_MAT_JOBS_COUNTER, 1);
-                    int numWaitingActions = jpaService
-                            .execute(new CoordActionsActiveCountJPAExecutor(coordJob.getId()));
+                    int numWaitingActions = jpaService.execute(new CoordActionsActiveCountJPAExecutor(coordJob
+                            .getId()));
                     LOG.info("Job :" + coordJob.getId() + "  numWaitingActions : " + numWaitingActions
                             + " MatThrottle : " + coordJob.getMatThrottling());
-                    // update lastModifiedTime so next time others might have higher chance to get pick up
+                    // update lastModifiedTime so next time others get picked up in LRU fashion
                     coordJob.setLastModifiedTime(new Date());
                     jpaService.execute(new CoordJobUpdateJPAExecutor(coordJob));
                     if (numWaitingActions >= coordJob.getMatThrottling()) {
-                        LOG.info("info for JobID [" + coordJob.getId() + " already waiting "
-                                + numWaitingActions + " actions. MatThrottle is : " + coordJob.getMatThrottling());
+                        LOG.info("info for JobID [" + coordJob.getId() + "] " + numWaitingActions
+                                + " actions already waiting. MatThrottle is : " + coordJob.getMatThrottling());
+                        rejected++;
                         continue;
                     }
                     queueCallable(new CoordMaterializeTransitionXCommand(coordJob.getId(), materializationWindow));
-
                 }
-
+                if (materializeJobs.size() == limit && rejected > 0) {
+                    return true;
+                }
             }
             catch (JPAExecutorException jex) {
                 LOG.warn("JPAExecutorException while attempting to materialize coordinator jobs", jex);
             }
+            return false;
         }
 
         /**
