@@ -7,6 +7,7 @@ OOZIE-1314 IllegalArgumentException: wfId cannot be empty (shwethags via virag)
 OOZIE-1577 Oozie coordinator job with identical start and end time remains "RUNNING" forever (bowenzhangusa via rkanter)
 OOZIE-1545 RecoveryService keeps repeatedly queueing SuspendXCommand (rohini)
 OOZIE-1632 Coordinators that undergo change endtime but are doneMaterialization, not getting picked for StatusTransit (mona)
+OOZIE-1539 Load more coordinator jobs eligible to be materialized in MaterializeTriggerService (mona)
 
 -- Oozie 4.0.0 release
 
