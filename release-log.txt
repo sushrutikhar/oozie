@@ -8,6 +8,7 @@ OOZIE-1577 Oozie coordinator job with identical start and end time remains "RUNN
 OOZIE-1545 RecoveryService keeps repeatedly queueing SuspendXCommand (rohini)
 OOZIE-1632 Coordinators that undergo change endtime but are doneMaterialization, not getting picked for StatusTransit (mona)
 OOZIE-1539 Load more coordinator jobs eligible to be materialized in MaterializeTriggerService (mona)
+OOZIE-1448 A CoordActionUpdateXCommand gets queued for all workflows even if they were not launched by a coordinator (rkanter)
 
 -- Oozie 4.0.0 release
 
