@@ -819,13 +819,13 @@ public class TestStatusTransitService extends XDataTestCase {
         assertNotNull(jpaService);
 
         final String bundleId = job.getId();
-        addRecordToBundleActionTable(bundleId, "action1", 0, Job.Status.KILLED);
 
         String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
         Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
         Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
 
-        addRecordToCoordJobTableWithBundle(bundleId, "action1", CoordinatorJob.Status.KILLED, start, end, true, true, 2);
+        CoordinatorJobBean coord = addRecordToCoordJobTableWithBundle(bundleId, "action1", CoordinatorJob.Status.KILLED, start, end, true, true, 2);
+        addRecordToBundleActionTable(bundleId, coord.getId(), "action1", 0, Job.Status.KILLED);
 
         addRecordToCoordActionTable("action1", 1, CoordinatorAction.Status.KILLED, "coord-action-get.xml", 0);
         addRecordToCoordActionTable("action1", 2, CoordinatorAction.Status.SUCCEEDED, "coord-action-get.xml", 0);
@@ -1035,16 +1035,18 @@ public class TestStatusTransitService extends XDataTestCase {
         assertNotNull(jpaService);
 
         final String bundleId = bundleJob.getId();
-        // Add a bundle action with no coordinator to make it fail
-        addRecordToBundleActionTable(bundleId, null, 0, Job.Status.KILLED);
-        addRecordToBundleActionTable(bundleId, "action2", 0, Job.Status.RUNNING);
 
         String currentDatePlusMonth = XDataTestCase.getCurrentDateafterIncrementingInMonths(1);
         Date start = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
         Date end = DateUtils.parseDateOozieTZ(currentDatePlusMonth);
 
-        addRecordToCoordJobTableWithBundle(bundleId, "action2", CoordinatorJob.Status.RUNNING, start, end, true, true, 2);
+        CoordinatorJobBean coord = addRecordToCoordJobTableWithBundle(bundleId, "action2",
+                CoordinatorJob.Status.RUNNING, start, end, true, true, 2);
         addRecordToCoordActionTable("action2", 1, CoordinatorAction.Status.RUNNING, "coord-action-get.xml", 0);
+
+        // Add a bundle action with no coordinator to make it fail
+        addRecordToBundleActionTable(bundleId, null, 0, Job.Status.KILLED);
+        addRecordToBundleActionTable(bundleId, coord.getId(), "action2", 0, Job.Status.RUNNING);
 
         Runnable runnable = new StatusTransitRunnable();
         // first time, service will call bundle kill
