@@ -1,5 +1,6 @@
 -- Oozie 4.1.0 release (trunk - unreleased)
 
+OOZIE-1699 Some of the commands submitted to Oozie internal queue are never executed (sriksun via virag)
 OOZIE-1675 Adding absolute URI of local cluster to dist cache not working with hadoop version 0.20.2 and before (satish via ryota)
 OOZIE-1622 Multiple CoordSubmit for same bundle (shwethags via virag)
 OOZIE-1663 Queuedump to display command type (shwethags via virag)
