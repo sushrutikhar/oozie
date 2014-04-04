@@ -178,6 +178,12 @@
                 <groupId>com.inmobi.grid</groupId>
                 <artifactId>s4fs</artifactId>
                 <version>0.1</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.apache.hadoop</groupId>
+                        <artifactId>hadoop-core</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>org.apache.oozie</groupId>
