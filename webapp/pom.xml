@@ -131,6 +131,10 @@
             <artifactId>oozie-sharelib-distcp</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>com.inmobi.grid</groupId>
+            <artifactId>s4fs</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
