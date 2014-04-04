@@ -134,6 +134,9 @@
         <dependency>
             <groupId>com.inmobi.grid</groupId>
             <artifactId>s4fs</artifactId>
+        <dependency>
+            <groupId>org.apache.falcon</groupId>
+            <artifactId>falcon-oozie-el-extension</artifactId>
         </dependency>
     </dependencies>
 

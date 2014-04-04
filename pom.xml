@@ -159,6 +159,11 @@
                 <enabled>false</enabled>
             </snapshots>
         </repository>
+        <repository>
+            <id>releases</id>
+            <name>Releases</name>
+            <url>http://maven.scm.corp.inmobi.com/content/repositories/releases/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -804,6 +809,11 @@
                 <version>${hadooplib.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.apache.falcon</groupId>
+                <artifactId>falcon-oozie-el-extension</artifactId>
+                <version>0.4.1-incubating</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
