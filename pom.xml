@@ -655,12 +655,6 @@
             </dependency>
 
             <dependency>
-                <groupId>mysql</groupId>
-                <artifactId>mysql-connector-java</artifactId>
-                <version>5.1.6</version>
-            </dependency>
-
-            <dependency>
                 <groupId>com.oracle</groupId>
                 <artifactId>ojdbc6</artifactId>
                 <version>11.2.0.2.0</version>
@@ -813,6 +807,12 @@
                 <groupId>org.apache.falcon</groupId>
                 <artifactId>falcon-oozie-el-extension</artifactId>
                 <version>0.4.1-incubating</version>
+            </dependency>
+
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>5.1.18</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
