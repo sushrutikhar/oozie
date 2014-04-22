@@ -42,6 +42,7 @@
             <scope>compile</scope>
             <excludes>
                  <exclude>*:*:pom:*</exclude>
+                 <exclude>org.apache.hadoop:hadoop-client</exclude>
             </excludes>
             <useTransitiveFiltering>true</useTransitiveFiltering>
         </dependencySet>
