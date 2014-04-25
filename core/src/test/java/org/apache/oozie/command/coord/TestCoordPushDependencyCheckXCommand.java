@@ -45,6 +45,7 @@ import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
@@ -237,6 +238,7 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
 
     }
 
+    @Ignore
     @Test
     public void testTimeOutWithUnresolvedMissingDependencies() throws Exception {
         String db = "default";
