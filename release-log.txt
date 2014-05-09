@@ -1,5 +1,7 @@
 -- Oozie 4.1.0 release (trunk - unreleased)
+
 OOZIE-1709 CoordELFunctions.getCurrentInstance() is expensive (shwethags via rohini)
+OOZIE-1243 libtools dir should not include hadoop JARs (sathish.mittal via rohini)
 OOZIE-1806 Java Action type jobs are failing with hadoop-0.20.0 and earlier versions on oozie trunk (sathish.mittal via rohini)
 OOZIE-1725 add coord EL functions to be used in SLA tag (ryota)
 OOZIE-1765 JMS Notifications for Workflows not always on the correct topic (rkanter)
