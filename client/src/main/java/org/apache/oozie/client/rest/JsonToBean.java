@@ -227,7 +227,15 @@ public class JsonToBean {
                 return obj;
             }
             else if (type == Integer.TYPE) {
-                return (obj != null) ? new Integer(((Long) obj).intValue()) : new Integer(0);
+                if (obj != null) {
+                    if (obj instanceof String) {
+                        return Integer.valueOf((String)obj);
+                    } else {
+                        return new Integer(((Long) obj).intValue());
+                    }
+                } else {
+                    return new Integer(0);
+                }
             }
             else if (type == Long.TYPE) {
                 return (obj != null) ? obj : new Long(0);
