@@ -528,4 +528,12 @@
         </description>
     </property>
 
+    <property>
+        <name>oozie.service.coord.check.maximum.frequency</name>
+        <value>false</value>
+        <description>
+            Whether to enable checking maximum frequency of coordinator job (default is 5 minutes).
+        </description>
+    </property>
+
 </configuration>
