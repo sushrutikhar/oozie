@@ -73,10 +73,6 @@
         <hbase.version>0.94.2</hbase.version>
         <hcatalog.version>0.5.0</hcatalog.version>
 
-        <hadooplib.version>${hadoop.version}.oozie-${project.version}</hadooplib.version>
-        <hbaselib.version>${hbase.version}.oozie-${project.version}</hbaselib.version>
-        <hcataloglib.version>${hcatalog.version}.oozie-${project.version}</hcataloglib.version>
-
         <clover.license>/home/jenkins/tools/clover/latest/lib/clover.license</clover.license>
         <!--
         This is required while we support a a pre 0.23 version of Hadoop which does not have
@@ -91,7 +87,6 @@
          <sqoop.version>1.4.3</sqoop.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
          <streaming.version>${hadoop.version}</streaming.version>
-         <distcp.version>${hadooplib.version}</distcp.version>
 
          <!-- Tomcat version -->
          <tomcat.version>6.0.37</tomcat.version>
@@ -330,25 +325,25 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hcatalog</artifactId>
-                <version>${hcataloglib.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hbase</artifactId>
-                <version>${hbaselib.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop</artifactId>
-                <version>${hadooplib.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-test</artifactId>
-                <version>${hadooplib.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
@@ -408,7 +403,7 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-distcp</artifactId>
-                <version>${distcp.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
@@ -800,7 +795,7 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-utils</artifactId>
-                <version>${hadooplib.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
