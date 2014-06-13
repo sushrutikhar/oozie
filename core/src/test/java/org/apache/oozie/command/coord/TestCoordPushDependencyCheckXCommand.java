@@ -17,9 +17,6 @@
  */
 package org.apache.oozie.command.coord;
 
-import java.io.ByteArrayOutputStream;
-import java.util.List;
-
 import org.apache.log4j.Appender;
 import org.apache.log4j.Layout;
 import org.apache.log4j.Logger;
@@ -47,6 +44,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+
+import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
     private String server;
@@ -240,7 +240,7 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
 
     @Ignore
     @Test
-    public void testTimeOutWithUnresolvedMissingDependencies() throws Exception {
+    public void _testTimeOutWithUnresolvedMissingDependencies() throws Exception {
         String db = "default";
         String table = "tablename";
         String newHCatDependency1 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=brazil";
