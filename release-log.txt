@@ -1,5 +1,6 @@
 -- Oozie 4.1.0 release (trunk - unreleased)
 
+OOZIE-1741 Add new coord EL function to get input partitions value string (satish.mittal via rohini) 
 OOZIE-1831 Oozie upgrade fails if workflow jobs are in running or suspended state (satish.mittal via rohini)
 OOZIE-1243 libtools dir should not include hadoop JARs (satish.mittal via rohini)
 OOZIE-1806 Java Action type jobs are failing with hadoop-0.20.0 and earlier versions on oozie trunk (satish.mittal via rohini)
