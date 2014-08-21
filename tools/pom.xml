@@ -36,11 +36,6 @@
             <artifactId>derby</artifactId>
             <scope>compile</scope>
         </dependency>
-         <dependency>
-             <groupId>org.apache.oozie</groupId>
-             <artifactId>oozie-hcatalog</artifactId>
-            <scope>test</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.oozie</groupId>
             <artifactId>oozie-sharelib-hive</artifactId>

@@ -54,15 +54,52 @@
         </dependency>
 
         <dependency>
-             <groupId>org.apache.oozie</groupId>
-             <artifactId>oozie-hbase</artifactId>
-             <scope>provided</scope>
+            <groupId>org.apache.hbase</groupId>
+            <artifactId>hbase</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- hcatalog dependencies -->
+        <dependency>
+            <groupId>org.apache.hive.hcatalog</groupId>
+            <artifactId>hive-hcatalog-server-extensions</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
-             <groupId>org.apache.oozie</groupId>
-             <artifactId>oozie-hcatalog</artifactId>
-             <scope>provided</scope>
+            <groupId>org.apache.hive.hcatalog</groupId>
+            <artifactId>hive-hcatalog-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive.hcatalog</groupId>
+            <artifactId>hive-webhcat-java-client</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-common</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-metastore</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-exec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.hive</groupId>
+            <artifactId>hive-serde</artifactId>
+            <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -280,6 +317,11 @@
         <dependency>
             <groupId>org.quartz-scheduler</groupId>
             <artifactId>quartz</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.zookeeper</groupId>
+            <artifactId>zookeeper</artifactId>
         </dependency>
 
         <dependency>

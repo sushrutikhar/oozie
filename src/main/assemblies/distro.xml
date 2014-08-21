@@ -165,5 +165,11 @@
             <outputDirectory>/</outputDirectory>
             <fileMode>0444</fileMode>
         </file>
+        <!-- Hcatalog libs TAR.GZ  -->
+        <file>
+            <source>${basedir}/../hcataloglibs/target/hcatalog-${hive.version}.tar.gz</source>
+            <outputDirectory>/</outputDirectory>
+            <fileMode>0444</fileMode>
+        </file>
     </files>
 </assembly>

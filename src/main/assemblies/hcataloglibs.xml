@@ -22,12 +22,9 @@
         <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>true</includeBaseDirectory>
-    <baseDirectory>oozie-${project.version}</baseDirectory>
-    <fileSets>
-        <!-- HCatalog libs -->
-        <fileSet>
-            <directory>${basedir}/../hcataloglibs/hive-hcatalog-0.13.1/target/hcataloglibs</directory>
-            <outputDirectory>/hcataloglibs</outputDirectory>
-        </fileSet>
-    </fileSets>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>/</outputDirectory>
+        </dependencySet>
+    </dependencySets>
 </assembly>
