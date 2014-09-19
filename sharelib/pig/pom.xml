@@ -108,12 +108,6 @@
             <artifactId>oozie-hadoop-utils</artifactId>
             <scope>provided</scope>
         </dependency>
-
-        <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-hcatalog</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 
     <build>
