@@ -17,11 +17,6 @@
  */
 package org.apache.oozie.util;
 
-import java.io.IOException;
-import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.FileSystem;
@@ -33,6 +28,11 @@ import org.apache.oozie.command.CommandException;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Job utilities.
@@ -148,7 +148,7 @@ public class JobUtils {
       XConfiguration.copy(conf, defaultConf);
       DistributedCache.addFileToClassPath(file, defaultConf, fs);
       // Hadoop 0.20/1.x.
-      if (defaultConf.get("mapred.job.classpath.files") != null) {
+      if (defaultConf.get("yarn.resourcemanager.address") == null) {
           // Duplicate hadoop 1.x code to workaround MAPREDUCE-2361 in Hadoop 0.20
           // Refer OOZIE-1806.
           String filepath = file.toUri().getPath();
