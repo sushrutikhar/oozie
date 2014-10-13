@@ -83,12 +83,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-docs</artifactId>
-            <type>war</type>
-            <scope>compile</scope>
-        </dependency>
 
         <dependency>
             <groupId>org.apache.oozie</groupId>
