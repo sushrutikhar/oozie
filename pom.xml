@@ -108,7 +108,7 @@
         <module>core</module>
         <module>webapp</module>
         <module>examples</module>
-        <module>docs</module>
+        <!--<module>docs</module>-->
         <module>sharelib</module>
         <module>tools</module>
         <module>minitest</module>
