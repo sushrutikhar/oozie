@@ -258,12 +258,12 @@
                 <artifactId>oozie-sharelib-hcatalog</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <dependency>
-                <groupId>org.apache.oozie</groupId>
-                <artifactId>oozie-docs</artifactId>
-                <version>${project.version}</version>
-                <type>war</type>
-            </dependency>
+            <!--<dependency>-->
+                <!--<groupId>org.apache.oozie</groupId>-->
+                <!--<artifactId>oozie-docs</artifactId>-->
+                <!--<version>${project.version}</version>-->
+                <!--<type>war</type>-->
+            <!--</dependency>-->
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-webapp</artifactId>
