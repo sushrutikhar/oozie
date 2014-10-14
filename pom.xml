@@ -108,7 +108,7 @@
         <module>core</module>
         <module>webapp</module>
         <module>examples</module>
-        <!--<module>docs</module>-->
+        <module>docs</module>
         <module>sharelib</module>
         <module>tools</module>
         <module>minitest</module>
@@ -258,12 +258,12 @@
                 <artifactId>oozie-sharelib-hcatalog</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            <!--<dependency>-->
-                <!--<groupId>org.apache.oozie</groupId>-->
-                <!--<artifactId>oozie-docs</artifactId>-->
-                <!--<version>${project.version}</version>-->
-                <!--<type>war</type>-->
-            <!--</dependency>-->
+            <dependency>
+                <groupId>org.apache.oozie</groupId>
+                <artifactId>oozie-docs</artifactId>
+                <version>${project.version}</version>
+                <type>war</type>
+            </dependency>
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-webapp</artifactId>
@@ -1251,11 +1251,6 @@
                     <version>2.2.1</version>
                 </plugin>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-javadoc-plugin</artifactId>
-                    <version>2.7</version>
-                </plugin>
-                <plugin>
                     <groupId>org.codehaus.mojo</groupId>
                     <artifactId>build-helper-maven-plugin</artifactId>
                     <version>1.5</version>
@@ -1481,11 +1476,6 @@
                         <exclude>test-patch/**</exclude>
                     </excludes>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-javadoc-plugin</artifactId>
-                <version>2.7</version>
             </plugin>
         </plugins>
     </build>
