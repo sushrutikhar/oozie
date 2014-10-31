@@ -86,7 +86,7 @@
 
          <!-- Sharelib component versions -->
          <hive.version>0.10.0</hive.version>
-         <pig.version>0.10.1</pig.version>
+         <pig.version>0.12.1.2.1.5.0-695</pig.version>
          <pig.classifier></pig.classifier>
          <sqoop.version>1.4.3</sqoop.version>
          <sqoop.classifier>hadoop100</sqoop.classifier>
@@ -163,6 +163,11 @@
             <id>releases</id>
             <name>Releases</name>
             <url>http://maven.scm.corp.inmobi.com/content/repositories/releases/</url>
+        </repository>
+        <repository>
+            <id>hotton releases</id>
+            <name>hotton Releases</name>
+            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
         </repository>
     </repositories>
 
