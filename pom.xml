@@ -164,6 +164,11 @@
             <name>Releases</name>
             <url>http://maven.scm.corp.inmobi.com/content/repositories/releases/</url>
         </repository>
+        <repository>
+            <id>hotton releases</id>
+            <name>hotton Releases</name>
+            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>
