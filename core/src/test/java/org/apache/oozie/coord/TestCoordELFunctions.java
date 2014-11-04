@@ -185,7 +185,6 @@ public class TestCoordELFunctions extends XTestCase {
 
         SyncCoordAction appInst = new SyncCoordAction();
         SyncCoordDataset ds = new SyncCoordDataset();
-        ;
         ds.setFrequency(1);
         ds.setTimeUnit(TimeUnit.DAY);
         ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-02T00:00Z"));
@@ -261,7 +260,6 @@ public class TestCoordELFunctions extends XTestCase {
 
         SyncCoordAction appInst = new SyncCoordAction();
         SyncCoordDataset ds = new SyncCoordDataset();
-        ;
         ds.setFrequency(1);
         ds.setTimeUnit(TimeUnit.MONTH);
         ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-02T00:00Z"));
@@ -388,7 +386,6 @@ public class TestCoordELFunctions extends XTestCase {
 
         SyncCoordAction appInst = new SyncCoordAction();
         SyncCoordDataset ds = new SyncCoordDataset();
-        ;
         ds.setFrequency(1);
         ds.setTimeUnit(TimeUnit.DAY);
         ds.setInitInstance(DateUtils.parseDateOozieTZ("2009-01-02T00:00Z"));

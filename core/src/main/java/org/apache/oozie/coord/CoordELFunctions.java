@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -51,6 +52,12 @@ public class CoordELFunctions {
     final public static String DIR_SEPARATOR = ",";
     // TODO: in next release, support flexibility
     private static String END_OF_OPERATION_INDICATOR_FILE = "_SUCCESS";
+
+    public static final long MINUTE_MSEC = 60 * 1000L;
+    public static final long HOUR_MSEC = 60 * MINUTE_MSEC;
+    public static final long DAY_MSEC = 24 * HOUR_MSEC;
+    public static final long MONTH_MSEC = 30 * DAY_MSEC;
+    public static final long YEAR_MSEC = 365 * DAY_MSEC;
 
     /**
      * Used in defining the frequency in 'day' unit. <p/> domain: <code> val &gt; 0</code> and should be integer.
@@ -1138,9 +1145,8 @@ public class CoordELFunctions {
         if (ds == null) {
             throw new RuntimeException("Associated Dataset should be defined with key " + DATASET);
         }
-        Calendar effInitTS = Calendar.getInstance();
+        Calendar effInitTS = new GregorianCalendar(ds.getTimeZone());
         effInitTS.setTime(ds.getInitInstance());
-        effInitTS.setTimeZone(ds.getTimeZone());
         // To adjust EOD/EOM
         DateUtils.moveToEnd(effInitTS, getDSEndOfFlag(eval));
         return effInitTS;
@@ -1208,6 +1214,68 @@ public class CoordELFunctions {
      *         the dataset.
      */
     private static Calendar getCurrentInstance(Date effectiveTime, int instanceCount[], ELEvaluator eval) {
+        Date datasetInitialInstance = getInitialInstance(eval);
+        TimeUnit dsTimeUnit = getDSTimeUnit(eval);
+        TimeZone dsTZ = getDatasetTZ(eval);
+        int dsFreq = getDSFrequency(eval);
+        // Convert Date to Calendar for corresponding TZ
+        Calendar current = Calendar.getInstance(dsTZ);
+        current.setTime(datasetInitialInstance);
+
+        Calendar calEffectiveTime = new GregorianCalendar(dsTZ);
+        calEffectiveTime.setTime(effectiveTime);
+        if (instanceCount == null) {    // caller doesn't care about this value
+            instanceCount = new int[1];
+        }
+        instanceCount[0] = 0;
+        if (current.compareTo(calEffectiveTime) > 0) {
+            return null;
+        }
+
+        switch(dsTimeUnit) {
+            case MINUTE:
+                instanceCount[0] = (int) ((effectiveTime.getTime() - datasetInitialInstance.getTime()) / MINUTE_MSEC);
+                break;
+            case HOUR:
+                instanceCount[0] = (int) ((effectiveTime.getTime() - datasetInitialInstance.getTime()) / HOUR_MSEC);
+                break;
+            case DAY:
+            case END_OF_DAY:
+                instanceCount[0] = (int) ((effectiveTime.getTime() - datasetInitialInstance.getTime()) / DAY_MSEC);
+                break;
+            case MONTH:
+            case END_OF_MONTH:
+                instanceCount[0] = (int) ((effectiveTime.getTime() - datasetInitialInstance.getTime()) / MONTH_MSEC);
+                break;
+            case YEAR:
+                instanceCount[0] = (int) ((effectiveTime.getTime() - datasetInitialInstance.getTime()) / YEAR_MSEC);
+                break;
+            default:
+                throw new IllegalArgumentException("Unhandled dataset time unit " + dsTimeUnit);
+        }
+
+        if (instanceCount[0] > 2) {
+            instanceCount[0] = (instanceCount[0] / dsFreq);
+            current.add(dsTimeUnit.getCalendarUnit(), instanceCount[0] * dsFreq);
+        } else {
+            instanceCount[0] = 0;
+        }
+        while (!current.getTime().after(effectiveTime)) {
+            current.add(dsTimeUnit.getCalendarUnit(), dsFreq);
+            instanceCount[0]++;
+        }
+        current.add(dsTimeUnit.getCalendarUnit(), -dsFreq);
+        instanceCount[0]--;
+        return current;
+    }
+
+    /**
+     * Find the current instance based on effectiveTime (i.e Action_Creation_Time or Action_Start_Time)
+     *
+     * @return current instance i.e. current(0) returns null if effectiveTime is earlier than Initial Instance time of
+     *         the dataset.
+     */
+    private static Calendar getCurrentInstance_old(Date effectiveTime, int instanceCount[], ELEvaluator eval) {
         Date datasetInitialInstance = getInitialInstance(eval);
         TimeUnit dsTimeUnit = getDSTimeUnit(eval);
         TimeZone dsTZ = getDatasetTZ(eval);
