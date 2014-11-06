@@ -255,6 +255,9 @@ public class ReRunXCommand extends WorkflowXCommand<Void> {
                 }
             }
         }
+        finally {
+            updateParentIfNecessary(wfBean);
+        }
 
     }
 
