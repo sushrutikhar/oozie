@@ -17,10 +17,6 @@
  */
 package org.apache.oozie.command.wf;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
@@ -44,6 +40,10 @@ import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.workflow.WorkflowInstance;
 import org.apache.oozie.workflow.lite.LiteWorkflowInstance;
 
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
 public class SuspendXCommand extends WorkflowXCommand<Void> {
     private final String wfid;
     private WorkflowJobBean wfJobBean;
@@ -65,6 +65,8 @@ public class SuspendXCommand extends WorkflowXCommand<Void> {
                     this.wfJobBean));
             BatchQueryExecutor.getInstance().executeBatchInsertUpdateDelete(null, updateList, null);
             queue(new NotificationXCommand(this.wfJobBean));
+            //Calling suspend recursively to handle parent workflow
+            suspendParentWorkFlow();
         }
         catch (WorkflowException e) {
             throw new CommandException(e);
@@ -76,6 +78,19 @@ public class SuspendXCommand extends WorkflowXCommand<Void> {
             updateParentIfNecessary(wfJobBean);
         }
         return null;
+    }
+
+    /**
+     * It will suspend the parent workflow
+     * @throws CommandException
+     */
+    private void suspendParentWorkFlow() throws CommandException {
+        if (this.wfJobBean.getParentId() != null && this.wfJobBean.getParentId().contains("-W")) {
+            new SuspendXCommand(this.wfJobBean.getParentId()).call();
+        } else {
+            // update the action of the parent workflow if it is launched by coordinator
+            updateParentIfNecessary(wfJobBean);
+        }
     }
 
     /**
