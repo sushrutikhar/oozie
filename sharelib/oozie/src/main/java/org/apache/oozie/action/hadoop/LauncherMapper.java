@@ -174,7 +174,9 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
 
 
         actionConf.addResource(new Path("file:///", actionXml));
-        propagationConf.set("mapreduce.job.tags", actionConf.get("child.mapreduce.job.tags"));
+        if( actionConf.get("child.mapreduce.job.tags") != null) {
+            propagationConf.set("mapreduce.job.tags", actionConf.get("child.mapreduce.job.tags"));
+        }
 
         System.out.println(" filled tags");
         System.out.println(" path of propagation " + new File(actionXml).getParentFile().getPath());
