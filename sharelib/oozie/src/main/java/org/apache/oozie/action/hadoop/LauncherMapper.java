@@ -26,6 +26,8 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.OutputStream;
+import java.io.FileOutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.Permission;
@@ -76,6 +78,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     static final String ACTION_DATA_STATS = "stats.properties";
     static final String ACTION_DATA_NEW_ID = "newId";
     static final String ACTION_DATA_ERROR_PROPS = "error.properties";
+    public static final String PROPAGATION_CONF_XML = "propagation-conf.xml";
 
     private void setRecoveryId(Configuration launcherConf, Path actionDir, String recoveryId) throws LauncherException {
         try {
@@ -140,9 +143,65 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         }
     }
 
+    /**
+     * Pushing all important conf to child.
+     */
+    private void propagateConf() {
+        System.out.println(" start propagating conf");
+        Configuration propagationConf = new Configuration(false);
+        if (System.getProperty("oozie.action.id") != null) {
+            System.out.println("oozie.action.id");
+            propagationConf.set("oozie.action.id", System.getProperty("oozie.action.id"));
+        }
+        if (System.getProperty("oozie.job.id") != null) {
+            System.out.println("oozie.job.id");
+            propagationConf.set("oozie.job.id", System.getProperty("oozie.job.id"));
+        }
+        if(System.getProperty("oozie.launcher.job.id") != null) {
+            System.out.println("oozie.launcher.job.id");
+            propagationConf.set("oozie.launcher.job.id", System.getProperty("oozie.launcher.job.id"));
+        }
+
+        System.out.println(" filled system conf");
+        Configuration actionConf = new Configuration(false);
+        String actionXml = System.getProperty("oozie.action.conf.xml");
+        if (actionXml == null) {
+            throw new RuntimeException("Missing Java System Property [oozie.action.conf.xml]");
+        }
+        if (!new File(actionXml).exists()) {
+            throw new RuntimeException("Action Configuration XML file [" + actionXml + "] does not exist");
+        }
+
+
+        actionConf.addResource(new Path("file:///", actionXml));
+        propagationConf.set("mapreduce.job.tags", actionConf.get("child.mapreduce.job.tags"));
+
+        System.out.println(" filled tags");
+        System.out.println(" path of propagation " + new File(actionXml).getParentFile().getPath());
+        File propagationXml = new File(new File(actionXml).getParentFile(), PROPAGATION_CONF_XML);
+        OutputStream os = null;
+        try {
+            os = new FileOutputStream(propagationXml);
+            propagationConf.writeXml(os);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (os != null) {
+                try {
+                    os.close();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+        Configuration.addDefaultResource(PROPAGATION_CONF_XML);
+        System.out.println(" end propagating conf");
+    }
+
     @Override
     public void map(K1 key, V1 value, OutputCollector<K2, V2> collector, Reporter reporter) throws IOException {
         try {
+            System.out.println(" calling launcher mapper's map");
             if (configFailure) {
                 throw configureFailureEx;
             }
@@ -168,6 +227,9 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
                     setupHeartBeater(reporter);
 
                     setupMainConfiguration();
+
+                    // Propagating the conf to use by child job.
+                    propagateConf();
 
                     try {
                         System.out.println("Starting the execution of prepare actions");
@@ -432,7 +494,6 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         System.setProperty(ACTION_PREFIX + ACTION_DATA_NEW_ID, new File(ACTION_DATA_NEW_ID).getAbsolutePath());
         System.setProperty(ACTION_PREFIX + ACTION_DATA_OUTPUT_PROPS, new File(ACTION_DATA_OUTPUT_PROPS).getAbsolutePath());
         System.setProperty(ACTION_PREFIX + ACTION_DATA_ERROR_PROPS, new File(ACTION_DATA_ERROR_PROPS).getAbsolutePath());
-        System.setProperty("oozie.job.launch.time", getJobConf().get("oozie.job.launch.time"));
     }
 
     // Method to execute the prepare actions

@@ -23,6 +23,7 @@ import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.DagEngine;
 import org.apache.oozie.LocalOozieClient;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.command.wf.ActionStartXCommand;
 import org.apache.oozie.service.DagEngineService;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.OozieClient;
@@ -179,6 +180,11 @@ public class SubWorkflowActionExecutor extends ActionExecutor {
                 JobUtils.normalizeAppPath(context.getWorkflow().getUser(), context.getWorkflow().getGroup(),
                                           subWorkflowConf);
 
+                // pushing the tag to conf for using by Launcher.
+                if(context.getVar(ActionStartXCommand.COORD_ACTION_TAG) != null) {
+                    subWorkflowConf.set(ActionStartXCommand.COORD_ACTION_TAG,
+                            context.getVar(ActionStartXCommand.COORD_ACTION_TAG));
+                }
                 subWorkflowId = oozieClient.run(subWorkflowConf.toProperties());
             }
             else {

@@ -159,17 +159,16 @@ public class LauncherMapperHelper {
         launcherConf.set("mapred.output.dir", new Path(actionDir, "output").toString());
     }
 
-    public static void setupYarnRestartHandling(JobConf launcherJobConf, Configuration actionConf, String actionId)
+    public static void setupYarnRestartHandling(JobConf launcherJobConf, Configuration actionConf, String launcherTag)
             throws NoSuchAlgorithmException {
-        launcherJobConf.setLong("oozie.job.launch.time", System.currentTimeMillis());
         // Tags are limited to 100 chars so we need to hash them to make sure (the actionId otherwise doesn't have a max length)
-        String tag = getTag(actionId);
-        actionConf.set("mapreduce.job.tags", tag);
+        String tag = getTag(launcherTag);
+        actionConf.set("child.mapreduce.job.tags", tag);
     }
 
-    private static String getTag(String actionId) throws NoSuchAlgorithmException {
+    private static String getTag(String launcherTag) throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("MD5");
-        digest.update(actionId.getBytes(), 0, actionId.length());
+        digest.update(launcherTag.getBytes(), 0, launcherTag.length());
         String md5 = "oozie-" + new BigInteger(1, digest.digest()).toString(16);
         return md5;
     }

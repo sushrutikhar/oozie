@@ -40,20 +40,15 @@ public class LauncherMainHadoopUtils {
     }
 
     private static Set<ApplicationId> getChildYarnJobs(Configuration actionConf) {
+        System.out.println(" Fetching child yarn jobs");
         Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
-        long startTime = 0L;
-        try {
-            startTime = Long.parseLong((System.getProperty("oozie.job.launch.time")));
-        } catch(NumberFormatException nfe) {
-            throw new RuntimeException("Could not find Oozie job launch time", nfe);
-        }
         String tag = actionConf.get("mapreduce.job.tags");
+        System.out.println( " old tag id  " + tag);
         if (tag == null) {
             throw new RuntimeException("Could not find Yarn tags property (mapreduce.job.tags)");
         }
         GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
         gar.setScope(ApplicationsRequestScope.OWN);
-        gar.setStartRange(startTime, System.currentTimeMillis());
         gar.setApplicationTags(Collections.singleton(tag));
         try {
             ApplicationClientProtocol proxy = ClientRMProxy.createRMProxy(actionConf, ApplicationClientProtocol.class);
@@ -67,6 +62,7 @@ public class LauncherMainHadoopUtils {
         } catch (YarnException ye) {
             throw new RuntimeException("Exception occurred while finding child jobs", ye);
         }
+        System.out.println(" Child yarn job size is " + childYarnJobs.size());
         return childYarnJobs;
     }
 

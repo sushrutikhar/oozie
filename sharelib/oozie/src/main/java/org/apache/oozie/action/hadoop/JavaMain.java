@@ -39,8 +39,10 @@ public class JavaMain extends LauncherMain {
     @Override
     protected void run(String[] args) throws Exception {
 
+        Configuration baseConf = new Configuration();
         Configuration actionConf = loadActionConf();
 
+        actionConf.set("mapreduce.job.tags",baseConf.get("mapreduce.job.tags"));
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
 
         Class<?> klass = actionConf.getClass(JAVA_MAIN_CLASS, Object.class);
