@@ -67,6 +67,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     public static final String COULD_NOT_START = "COULD_NOT_START";
     public static final String START_DATA_MISSING = "START_DATA_MISSING";
     public static final String EXEC_DATA_MISSING = "EXEC_DATA_MISSING";
+    public static final String COORD_ACTION_TAG = "coord.action.tag";
 
     private String jobId = null;
     private String actionId = null;
@@ -225,6 +226,19 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 Instrumentation.Cron cron = new Instrumentation.Cron();
                 cron.start();
                 context.setStartTime();
+                                /*
+                Creating and forwarding the tag, It will be useful during repeat attempts of Launcher, to ensure only
+                one child job is running. Tag is formed as follows:
+                For workflow job, tag = action-id
+                For Coord job, tag = coord-action-id@action-name (if not part of sub flow), else
+                coord-action-id@subflow-action-name@action-name.
+                 */
+                if (conf.get(COORD_ACTION_TAG) != null) {
+                    context.setVar(COORD_ACTION_TAG, conf.get(COORD_ACTION_TAG) + "@" + wfAction.getName());
+
+                } else if (wfJob.getParentId() != null) {
+                    context.setVar(COORD_ACTION_TAG, wfJob.getParentId() + "@" + wfAction.getName());
+                }
                 executor.start(context, wfAction);
                 cron.stop();
                 FaultInjection.activate("org.apache.oozie.command.SkipCommitFaultInjection");

@@ -58,6 +58,7 @@ import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.command.wf.ActionStartXCommand;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
@@ -705,8 +706,14 @@ public class JavaActionExecutor extends ActionExecutor {
             JobConf launcherJobConf = createBaseHadoopConf(context, actionXml);
             setupLauncherConf(launcherJobConf, actionXml, appPathRoot, context);
 
+            String launcherTag = action.getId();
+            // Extracting tag and appending action name to maintain the uniqueness.
+            if(context.getVar(ActionStartXCommand.COORD_ACTION_TAG)!= null) {
+                launcherTag = context.getVar(ActionStartXCommand.COORD_ACTION_TAG);
+            }
+            System.out.println("creating laucher tag JavaAction");
             // Properties for when a launcher job's AM gets restarted
-            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf, actionConf, action.getId());
+            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf, actionConf, launcherTag);
 
             String actionShareLibProperty = actionConf.get(ACTION_SHARELIB_FOR + getType());
             if (actionShareLibProperty != null) {
