@@ -45,12 +45,12 @@ public class LauncherMainHadoopUtils {
     private static Set<ApplicationId> getChildYarnJobs(Configuration actionConf) {
         System.out.println(" Fetching child yarn jobs");
         Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
-        String tag = actionConf.get("mapreduce.job.tags");
-        System.out.println( " old tag id  " + tag);
-        if (tag == null) {
+        if (actionConf.get("mapreduce.job.tags") == null) {
             logger.warning("Could not find Yarn tags property (mapreduce.job.tags)");
             return childYarnJobs;
         }
+        String tag = actionConf.get("mapreduce.job.tags");
+        System.out.println( " old tag id  " + tag);
         GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
         gar.setScope(ApplicationsRequestScope.OWN);
         gar.setApplicationTags(Collections.singleton(tag));
