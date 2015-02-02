@@ -66,7 +66,7 @@ public class PipesMain extends MapReduceMain {
             }
         }
 
-        setMapReduceJobTag(actionConf);
+        setYarnTag(actionConf);
 
         addActionConf(jobConf, actionConf);
 

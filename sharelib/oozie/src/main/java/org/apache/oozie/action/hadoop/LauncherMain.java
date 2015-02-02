@@ -35,7 +35,6 @@ import org.apache.commons.lang.StringUtils;
 public abstract class LauncherMain {
 
     public static final String HADOOP_JOBS = "hadoopJobs";
-    public static final String MAPREDUCE_JOB_TAGS = "mapreduce.job.tags";
     public static final String CHILD_MAPREDUCE_JOB_TAGS = "child.mapreduce.job.tags";
 
     protected static void run(Class<? extends LauncherMain> klass, String[] args) throws Exception {
@@ -125,9 +124,9 @@ public abstract class LauncherMain {
         return path;
     }
 
-    protected static void setMapReduceJobTag(Configuration actionConf) {
+    protected static void setYarnTag(Configuration actionConf) {
         if(actionConf.get(CHILD_MAPREDUCE_JOB_TAGS) != null) {
-            actionConf.set(MAPREDUCE_JOB_TAGS,actionConf.get(CHILD_MAPREDUCE_JOB_TAGS));
+            actionConf.set("mapreduce.job.tags",actionConf.get(CHILD_MAPREDUCE_JOB_TAGS));
         }
     }
 }

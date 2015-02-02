@@ -60,7 +60,7 @@ public class SqoopMain extends LauncherMain {
 
         sqoopConf.addResource(new Path("file:///", actionXml));
 
-        setMapReduceJobTag(sqoopConf);
+        setYarnTag(sqoopConf);
 
         String delegationToken = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (delegationToken != null) {

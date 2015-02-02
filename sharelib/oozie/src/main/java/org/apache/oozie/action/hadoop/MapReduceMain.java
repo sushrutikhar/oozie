@@ -49,7 +49,7 @@ public class MapReduceMain extends LauncherMain {
         logMasking("Map-Reduce job configuration:", new HashSet<String>(), actionConf);
 
 
-        setMapReduceJobTag(actionConf);
+        setYarnTag(actionConf);
 
         String jobId = LauncherMainHadoopUtils.getYarnJobForMapReduceAction(actionConf);
         File idFile = new File(System.getProperty(LauncherMapper.ACTION_PREFIX + LauncherMapper.ACTION_DATA_NEW_ID));
