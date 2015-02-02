@@ -22,7 +22,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.logging.Logger;
+import org.apache.log4j.Logger;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
@@ -46,7 +46,7 @@ public class LauncherMainHadoopUtils {
         System.out.println(" Fetching child yarn jobs");
         Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
         if (actionConf.get("mapreduce.job.tags") == null) {
-            logger.warning("Could not find Yarn tags property (mapreduce.job.tags)");
+            logger.warn("Could not find Yarn tags property (mapreduce.job.tags)");
             return childYarnJobs;
         }
         String tag = actionConf.get("mapreduce.job.tags");

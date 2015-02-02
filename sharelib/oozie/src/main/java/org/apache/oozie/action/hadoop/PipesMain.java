@@ -66,10 +66,8 @@ public class PipesMain extends MapReduceMain {
             }
         }
 
-        Configuration baseConf = new Configuration();
-        if(baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS) != null) {
-            actionConf.set(JavaMain.MAPREDUCE_JOB_TAGS,baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS));
-        }
+        setMapReduceJobTag(actionConf);
+
         addActionConf(jobConf, actionConf);
 
         //propagate delegation related props from launcher job to MR job

@@ -83,10 +83,7 @@ public class HiveMain extends LauncherMain {
 
         hiveConf.addResource(new Path("file:///", actionXml));
 
-        Configuration baseConf = new Configuration();
-        if(baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS) != null) {
-            hiveConf.set(JavaMain.MAPREDUCE_JOB_TAGS,baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS));
-        }
+        setMapReduceJobTag(hiveConf);
 
         // Propagate delegation related props from launcher job to Hive job
         String delegationToken = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");

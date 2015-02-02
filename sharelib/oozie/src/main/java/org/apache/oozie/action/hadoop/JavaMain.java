@@ -42,10 +42,7 @@ public class JavaMain extends LauncherMain {
 
         Configuration actionConf = loadActionConf();
 
-        Configuration baseConf = new Configuration();
-        if(baseConf.get(MAPREDUCE_JOB_TAGS) != null) {
-            actionConf.set(MAPREDUCE_JOB_TAGS,baseConf.get(MAPREDUCE_JOB_TAGS));
-        }
+        setMapReduceJobTag(actionConf);
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
 
         Class<?> klass = actionConf.getClass(JAVA_MAIN_CLASS, Object.class);
