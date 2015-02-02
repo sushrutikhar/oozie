@@ -66,6 +66,8 @@ public class PipesMain extends MapReduceMain {
             }
         }
 
+        setYarnTag(actionConf);
+
         addActionConf(jobConf, actionConf);
 
         //propagate delegation related props from launcher job to MR job

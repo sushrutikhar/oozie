@@ -163,7 +163,7 @@ public class LauncherMapperHelper {
             throws NoSuchAlgorithmException {
         // Tags are limited to 100 chars so we need to hash them to make sure (the actionId otherwise doesn't have a max length)
         String tag = getTag(launcherTag);
-        actionConf.set("child.mapreduce.job.tags", tag);
+        actionConf.set(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS, tag);
     }
 
     private static String getTag(String launcherTag) throws NoSuchAlgorithmException {

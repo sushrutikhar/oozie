@@ -72,6 +72,7 @@ public class StreamingMain extends MapReduceMain {
         }
         jobConf.set("stream.addenvironment", value);
 
+        setYarnTag(actionConf);
         addActionConf(jobConf, actionConf);
 
         // propagate delegation related props from launcher job to MR job
