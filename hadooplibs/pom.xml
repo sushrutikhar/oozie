@@ -80,6 +80,18 @@
                 <module>hadoop-utils-3</module>
             </modules>
         </profile>
+        <profile>
+            <id>hadoop-2</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <modules>
+                <module>hadoop-2</module>
+                <module>hadoop-test-2</module>
+                <module>hadoop-distcp-2</module>
+                <module>hadoop-utils-2</module>
+            </modules>
+        </profile>
     </profiles>
 </project>
 
