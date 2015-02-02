@@ -72,6 +72,10 @@ public class StreamingMain extends MapReduceMain {
         }
         jobConf.set("stream.addenvironment", value);
 
+        Configuration baseConf = new Configuration();
+        if(baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS) != null) {
+            actionConf.set(JavaMain.MAPREDUCE_JOB_TAGS,baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS));
+        }
         addActionConf(jobConf, actionConf);
 
         // propagate delegation related props from launcher job to MR job

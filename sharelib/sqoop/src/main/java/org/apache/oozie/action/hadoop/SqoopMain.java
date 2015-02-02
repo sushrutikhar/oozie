@@ -60,6 +60,12 @@ public class SqoopMain extends LauncherMain {
 
         sqoopConf.addResource(new Path("file:///", actionXml));
 
+        Configuration baseConf = new Configuration();
+        if(baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS) != null) {
+            sqoopConf.set(JavaMain.MAPREDUCE_JOB_TAGS,baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS));
+        }
+        sqoopConf.set("mapreduce.job.tags", sqoopConf.get("child.mapreduce.job.tags"));
+
         String delegationToken = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (delegationToken != null) {
             sqoopConf.set("mapreduce.job.credentials.binary", delegationToken);

@@ -97,6 +97,11 @@ public class PigMain extends LauncherMain {
 
         actionConf.addResource(new Path("file:///", actionXml));
 
+        Configuration baseConf = new Configuration();
+        if(baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS) != null) {
+            actionConf.set(JavaMain.MAPREDUCE_JOB_TAGS,baseConf.get(JavaMain.MAPREDUCE_JOB_TAGS));
+        }
+
         Properties pigProperties = new Properties();
         for (Map.Entry<String, String> entry : actionConf) {
             pigProperties.setProperty(entry.getKey(), entry.getValue());

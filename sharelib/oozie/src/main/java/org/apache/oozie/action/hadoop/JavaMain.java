@@ -27,6 +27,7 @@ import org.apache.hadoop.fs.Path;
 
 public class JavaMain extends LauncherMain {
     public static final String JAVA_MAIN_CLASS = "oozie.action.java.main";
+    public static final String MAPREDUCE_JOB_TAGS = "mapreduce.job.tags";
 
    /**
     * @param args Invoked from LauncherMapper:map()
@@ -39,11 +40,11 @@ public class JavaMain extends LauncherMain {
     @Override
     protected void run(String[] args) throws Exception {
 
-        Configuration baseConf = new Configuration();
         Configuration actionConf = loadActionConf();
 
-        if(baseConf.get("mapreduce.job.tags") != null) {
-            actionConf.set("mapreduce.job.tags",baseConf.get("mapreduce.job.tags"));
+        Configuration baseConf = new Configuration();
+        if(baseConf.get(MAPREDUCE_JOB_TAGS) != null) {
+            actionConf.set(MAPREDUCE_JOB_TAGS,baseConf.get(MAPREDUCE_JOB_TAGS));
         }
         LauncherMainHadoopUtils.killChildYarnJobs(actionConf);
 

@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.logging.Logger;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.yarn.api.ApplicationClientProtocol;
 import org.apache.hadoop.yarn.api.protocolrecords.ApplicationsRequestScope;
@@ -35,6 +37,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.mapreduce.TypeConverter;
 
 public class LauncherMainHadoopUtils {
+    private static Logger logger = Logger.getLogger("LauncherMainHadoopUtils");
 
     private LauncherMainHadoopUtils() {
     }
@@ -45,7 +48,8 @@ public class LauncherMainHadoopUtils {
         String tag = actionConf.get("mapreduce.job.tags");
         System.out.println( " old tag id  " + tag);
         if (tag == null) {
-            throw new RuntimeException("Could not find Yarn tags property (mapreduce.job.tags)");
+            logger.warning("Could not find Yarn tags property (mapreduce.job.tags)");
+            return childYarnJobs;
         }
         GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
         gar.setScope(ApplicationsRequestScope.OWN);

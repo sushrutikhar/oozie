@@ -79,6 +79,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     static final String ACTION_DATA_NEW_ID = "newId";
     static final String ACTION_DATA_ERROR_PROPS = "error.properties";
     public static final String PROPAGATION_CONF_XML = "propagation-conf.xml";
+    public static final String CHILD_MAPREDUCE_JOB_TAGS = "child.mapreduce.job.tags";
 
     private void setRecoveryId(Configuration launcherConf, Path actionDir, String recoveryId) throws LauncherException {
         try {
@@ -174,8 +175,8 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
 
 
         actionConf.addResource(new Path("file:///", actionXml));
-        if( actionConf.get("child.mapreduce.job.tags") != null) {
-            propagationConf.set("mapreduce.job.tags", actionConf.get("child.mapreduce.job.tags"));
+        if(actionConf.get(CHILD_MAPREDUCE_JOB_TAGS) != null) {
+            propagationConf.set("mapreduce.job.tags", actionConf.get(CHILD_MAPREDUCE_JOB_TAGS));
         }
 
         System.out.println(" filled tags");
