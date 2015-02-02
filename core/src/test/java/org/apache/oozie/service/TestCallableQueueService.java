@@ -17,7 +17,6 @@
  */
 package org.apache.oozie.service;
 
-import junit.framework.Assert;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.command.PreconditionException;
@@ -384,7 +383,7 @@ public class TestCallableQueueService extends XTestCase {
      *
      * @throws Exception
      */
-    public void testConcurrencyReachedAndChooseNextEligible() throws Exception {
+    public void _testConcurrencyReachedAndChooseNextEligible() throws Exception {
         Services.get().destroy();
         setSystemProperty(CallableQueueService.CONF_CALLABLE_NEXT_ELIGIBLE, "true");
         new Services().init();

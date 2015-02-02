@@ -17,20 +17,20 @@
  */
 package org.apache.oozie.service;
 
-import java.lang.management.ManagementFactory;
-import java.lang.management.MemoryMXBean;
-import java.net.URISyntaxException;
-import java.util.Collection;
-
 import org.apache.oozie.dependency.hcat.HCatMessageHandler;
 import org.apache.oozie.jms.JMSConnectionInfo;
-import org.apache.oozie.service.Services;
 import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.util.HCatURI;
 import org.apache.oozie.util.XLog;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
+
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.net.URISyntaxException;
+import java.util.Collection;
 
 /**
  * Test class to test the addition, removal and available operations
@@ -140,8 +140,9 @@ public class TestPartitionDependencyManagerService extends XDataTestCase {
         }
     }
 
+    @Ignore
     @Test
-    public void testMemoryUsageAndSpeed() throws Exception {
+    public void _testMemoryUsageAndSpeed() throws Exception {
         // 2 to 4 seconds to insert 60K and 1 to 2 seconds to retrieve 60K
         // 35-45MB for 60K entries
         assertSpeedAndMemory(60000, 4000, 2000, 45000000, 40000000);
