@@ -23,7 +23,6 @@
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
         <version>4.1.13-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-hadoop-2</artifactId>
