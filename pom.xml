@@ -1545,7 +1545,7 @@
             <properties>
                <hadoop.version>2.4.0</hadoop.version>
                <hadoop.auth.version>2.4.0</hadoop.auth.version>
-               <pig.classifier>h2</pig.classifier>
+               <!--pig.classifier>h2</pig.classifier-->
                <sqoop.classifier>hadoop200</sqoop.classifier>
             </properties>
         </profile>
