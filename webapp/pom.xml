@@ -115,11 +115,11 @@
             <scope>provided</scope>
          </dependency>
 
-          <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-streaming</artifactId>
-            <scope>provided</scope>
-         </dependency>
+          <!--<dependency>-->
+            <!--<groupId>org.apache.oozie</groupId>-->
+            <!--<artifactId>oozie-sharelib-streaming</artifactId>-->
+            <!--<scope>provided</scope>-->
+         <!--</dependency>-->
 
         <dependency>
             <groupId>org.apache.oozie</groupId>
