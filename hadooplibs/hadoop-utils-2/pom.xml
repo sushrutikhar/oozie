@@ -25,7 +25,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.oozie</groupId>
-    <artifactId>oozie-hadoop-utils-2</artifactId>
+    <artifactId>oozie-hadoop-utils</artifactId>
     <version>4.1.18-SNAPSHOT</version>
     <description>Apache Oozie Hadoop Utils ${project.version}</description>
     <name>Apache Oozie Hadoop Utils ${project.version}</name>
@@ -34,7 +34,7 @@
     <dependencies>
         <dependency>
             <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-hadoop-2</artifactId>
+            <artifactId>oozie-hadoop</artifactId>
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>

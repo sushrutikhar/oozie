@@ -25,7 +25,7 @@
         <relativePath>../../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.oozie</groupId>
-    <artifactId>oozie-hadoop-test-2</artifactId>
+    <artifactId>oozie-hadoop-test</artifactId>
     <version>4.1.18-SNAPSHOT</version>
     <description>Apache Oozie Hadoop ${project.version} Test</description>
     <name>Apache Oozie Hadoop ${project.version} Test</name>
