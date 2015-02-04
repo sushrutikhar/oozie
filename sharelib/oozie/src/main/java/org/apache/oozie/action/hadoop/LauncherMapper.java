@@ -172,11 +172,14 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             throw new RuntimeException("Action Configuration XML file [" + actionXml + "] does not exist");
         }
 
-        if(actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS) != null) {
-            System.out.println(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS + " " + actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS));
-        }
+
 
         actionConf.addResource(new Path("file:///", actionXml));
+
+        if(actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS) != null) {
+            propagationConf.set("mapreduce.job.tags", actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS));
+            System.out.println(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS + " " + actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS));
+        }
 
         System.out.println(" filled tags");
         System.out.println(" path of propagation " + new File(actionXml).getParentFile().getPath());
