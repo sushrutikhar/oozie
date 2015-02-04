@@ -20,9 +20,9 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.oozie</groupId>
-        <artifactId>oozie-main</artifactId>
-        <version>4.1.16-SNAPSHOT</version>
-        <relativePath>../../pom.xml</relativePath>
+        <artifactId>oozie-hadooplibs</artifactId>
+        <version>4.1.17-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-hadoop-2</artifactId>
@@ -49,6 +49,22 @@
             <version>2.5.0</version>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptors>
+                        <descriptor>../../src/main/assemblies/hadooplib.xml</descriptor>
+                    </descriptors>
+                    <finalName>hadooplibs</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                 </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
 
