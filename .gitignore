@@ -16,6 +16,7 @@ test-patch
 .classpath
 .project
 .settings
+.idea
 
 # Oozie build
 core/pig*
