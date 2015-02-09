@@ -16,21 +16,27 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.1.12-SNAPSHOT</version>
+        <version>4.2.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-webapp</artifactId>
-    <version>4.1.12-SNAPSHOT</version>
+    <version>4.2.0-SNAPSHOT</version>
     <description>Apache Oozie WebApp</description>
     <name>Apache Oozie WebApp</name>
     <packaging>war</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>org.apache.oozie</groupId>
+            <artifactId>oozie-client</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.apache.oozie</groupId>
             <artifactId>oozie-core</artifactId>
@@ -90,47 +96,18 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <!--<dependency>-->
-            <!--<groupId>org.apache.oozie</groupId>-->
-            <!--<artifactId>oozie-docs</artifactId>-->
-            <!--<type>war</type>-->
-            <!--<scope>compile</scope>-->
-        <!--</dependency>-->
 
         <dependency>
             <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-pig</artifactId>
-            <scope>provided</scope>
-         </dependency>
-
-         <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-hive</artifactId>
-            <scope>provided</scope>
-         </dependency>
-
-         <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-sqoop</artifactId>
-            <scope>provided</scope>
-         </dependency>
-
-          <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-streaming</artifactId>
-            <scope>provided</scope>
-         </dependency>
-
-        <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-oozie</artifactId>
-            <scope>provided</scope>
+            <artifactId>oozie-docs</artifactId>
+            <type>war</type>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
             <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-hcatalog</artifactId>
-            <scope>provided</scope>
+            <artifactId>oozie-sharelib-oozie</artifactId>
+            <scope>compile</scope>
         </dependency>
 
         <dependency>
@@ -143,30 +120,6 @@
             <groupId>org.apache.httpcomponents</groupId>
             <artifactId>httpclient</artifactId>
             <version>4.3</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.oozie</groupId>
-            <artifactId>oozie-sharelib-distcp</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.inmobi.grid</groupId>
-            <artifactId>s4fs</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.falcon</groupId>
-            <artifactId>falcon-oozie-el-extension</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.apache.hadoop</groupId>
-                    <artifactId>hadoop-core</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
         </dependency>
     </dependencies>
 
@@ -186,9 +139,6 @@
              <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -204,17 +154,50 @@
                 <artifactId>maven-dependency-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>copy-dependencies</id>
+                        <id>copy-sharelib</id>
                         <phase>prepare-package</phase>
                         <goals>
-                            <goal>copy-dependencies</goal>
+                            <goal>copy</goal>
                         </goals>
                         <configuration>
-                            <includeArtifactIds>
-                                oozie-sharelib-pig,oozie-sharelib-hive,oozie-sharelib-sqoop,oozie-sharelib-streaming,
-                                oozie-sharelib-oozie,oozie-sharelib-hcatalog,oozie-sharelib-distcp
-                            </includeArtifactIds>
-                            <excludeTransitive>true</excludeTransitive>
+                            <artifactItems>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-pig</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-hive</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-sqoop</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-streaming</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-oozie</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-hcatalog</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-distcp</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-hive2</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-spark</artifactId>
+                                </artifactItem>
+                            </artifactItems>
                             <outputDirectory>${project.build.directory}/oozie-webapp-${project.version}/WEB-INF/lib</outputDirectory>
                             <overWriteIfNewer>true</overWriteIfNewer>
                        </configuration>
@@ -264,6 +247,34 @@
                     </plugin>
                 </plugins>
             </build>
+        </profile>
+        <profile>
+            <id>uber</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.apache.hadoop</groupId>
+                    <artifactId>hadoop-client</artifactId>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.oozie</groupId>
+                    <artifactId>oozie-hadoop-auth</artifactId>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hive.hcatalog</groupId>
+                    <artifactId>hive-webhcat-java-client</artifactId>
+                    <scope>compile</scope>
+                </dependency>
+                <dependency>
+                    <groupId>org.apache.hive.hcatalog</groupId>
+                    <artifactId>hive-hcatalog-server-extensions</artifactId>
+                    <scope>compile</scope>
+                </dependency>
+            </dependencies>
         </profile>
     </profiles>
 

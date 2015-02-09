@@ -1,0 +1,1 @@
+<workflow-app xmlns="uri:oozie:workflow:0.2" name="f">  <tag="end"/> <tag="end"/> </workflow-app>

@@ -15,13 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.text.MessageFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -37,7 +40,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 import java.util.TimeZone;
-
+import java.util.Map.Entry;
 import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -48,11 +51,15 @@ import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.hadoop.JavaActionExecutor;
 import org.apache.oozie.client.rest.JsonUtils;
+import org.apache.oozie.hadoop.utils.HadoopShims;
 import org.apache.oozie.util.Instrumentable;
 import org.apache.oozie.util.Instrumentation;
+import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XLog;
-
 import com.google.common.annotations.VisibleForTesting;
+
+import org.apache.oozie.ErrorCode;
+import org.jdom.JDOMException;
 
 public class ShareLibService implements Service, Instrumentable {
 
@@ -62,11 +69,15 @@ public class ShareLibService implements Service, Instrumentable {
 
     public static final String SHIP_LAUNCHER_JAR = "oozie.action.ship.launcher.jar";
 
+    public static final String PURGE_INTERVAL = CONF_PREFIX + "ShareLibService.purge.interval";
+
+    public static final String FAIL_FAST_ON_STARTUP = CONF_PREFIX + "ShareLibService.fail.fast.on.startup";
+
     private static final String PERMISSION_STRING = "-rwxr-xr-x";
 
-    public static final String LAUNCHER_PREFIX = "launcher_";
+    public static final String LAUNCHER_LIB_PREFIX = "launcher_";
 
-    public static final String SHARED_LIB_PREFIX = "lib_";
+    public static final String SHARE_LIB_PREFIX = "lib_";
 
     public static final SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
 
@@ -74,7 +85,14 @@ public class ShareLibService implements Service, Instrumentable {
 
     private Map<String, List<Path>> shareLibMap = new HashMap<String, List<Path>>();
 
+    private Map<String, Map<Path, Configuration>> shareLibConfigMap = new HashMap<String, Map<Path, Configuration>>();
+
     private Map<String, List<Path>> launcherLibMap = new HashMap<String, List<Path>>();
+
+    private Set<String> actionConfSet = new HashSet<String>();
+
+    // symlink mapping. Oozie keeps on checking symlink path and if changes, Oozie reloads the sharelib
+    private Map<String, Map<Path, Path>> symlinkMapping = new HashMap<String, Map<Path, Path>>();
 
     private static XLog LOG = XLog.getLog(ShareLibService.class);
 
@@ -92,37 +110,65 @@ public class ShareLibService implements Service, Instrumentable {
 
     FileSystem fs;
 
+    final long retentionTime = 1000 * 60 * 60 * 24 * ConfigurationService.getInt(LAUNCHERJAR_LIB_RETENTION);
+
     @Override
     public void init(Services services) throws ServiceException {
         this.services = services;
+        sharelibMappingFile = ConfigurationService.get(services.getConf(), SHARELIB_MAPPING_FILE);
+        isShipLauncherEnabled = ConfigurationService.getBoolean(services.getConf(), SHIP_LAUNCHER_JAR);
+        boolean failOnfailure = ConfigurationService.getBoolean(services.getConf(), FAIL_FAST_ON_STARTUP);
+        Path launcherlibPath = getLauncherlibPath();
+        HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
+        URI uri = launcherlibPath.toUri();
         try {
-            sharelibMappingFile = services.getConf().get(SHARELIB_MAPPING_FILE, "");
-            isShipLauncherEnabled = services.getConf().getBoolean(SHIP_LAUNCHER_JAR, false);
-            Path launcherlibPath = getLauncherlibPath();
-            HadoopAccessorService has = Services.get().get(HadoopAccessorService.class);
-            URI uri = launcherlibPath.toUri();
             fs = FileSystem.get(has.createJobConf(uri.getAuthority()));
+            //cache action key sharelib conf list
+            cacheActionKeySharelibConfList();
             updateLauncherLib();
             updateShareLib();
-            //Only one server should purge sharelib
-            if (Services.get().get(JobsConcurrencyService.class).isFirstServer()) {
-                purgeLibs(fs, LAUNCHER_PREFIX);
-                purgeLibs(fs, SHARED_LIB_PREFIX);
+        }
+        catch (Throwable e) {
+            if (failOnfailure) {
+                LOG.error("Sharelib initialization fails", e);
+                throw new ServiceException(ErrorCode.E0104, getClass().getName(), "Sharelib initialization fails. ", e);
+            }
+            else {
+                // We don't want to actually fail init by throwing an Exception, so only create the ServiceException and
+                // log it
+                ServiceException se = new ServiceException(ErrorCode.E0104, getClass().getName(),
+                        "Not able to cache sharelib. An Admin needs to install the sharelib with oozie-setup.sh and issue the "
+                                + "'oozie admin' CLI command to update the sharelib", e);
+                LOG.error(se);
             }
         }
-        catch (Exception e) {
-            LOG.error("Not able to cache shareLib. Admin need to issue oozlie cli command to update sharelib.", e);
-        }
-
+        Runnable purgeLibsRunnable = new Runnable() {
+            @Override
+            public void run() {
+                System.out.flush();
+                try {
+                    // Only one server should purge sharelib
+                    if (Services.get().get(JobsConcurrencyService.class).isLeader()) {
+                        final Date current = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime();
+                        purgeLibs(fs, LAUNCHER_LIB_PREFIX, current);
+                        purgeLibs(fs, SHARE_LIB_PREFIX, current);
+                    }
+                }
+                catch (IOException e) {
+                    LOG.error("There was an issue purging the sharelib", e);
+                }
+            }
+        };
+        services.get(SchedulerService.class).schedule(purgeLibsRunnable, 10,
+                ConfigurationService.getInt(services.getConf(), PURGE_INTERVAL) * 60 * 60 * 24,
+                SchedulerService.Unit.SEC);
     }
 
     /**
      * Recursively change permissions.
      *
      * @throws IOException Signals that an I/O exception has occurred.
-     * @throws ClassNotFoundException the class not found exception
      */
-
     private void updateLauncherLib() throws IOException {
         if (isShipLauncherEnabled) {
             if (fs == null) {
@@ -139,12 +185,11 @@ public class ShareLibService implements Service, Instrumentable {
     }
 
     /**
-     * Copy launcher jars to Temp directory
+     * Copy launcher jars to Temp directory.
      *
      * @param fs the FileSystem
-     * @param tmpShareLibPath destination path
+     * @param tmpLauncherLibPath the tmp launcher lib path
      * @throws IOException Signals that an I/O exception has occurred.
-     * @throws ClassNotFoundException the class not found exception
      */
     private void setupLauncherLibPath(FileSystem fs, Path tmpLauncherLibPath) throws IOException {
 
@@ -195,7 +240,7 @@ public class ShareLibService implements Service, Instrumentable {
      * @param classes the classes
      * @param fs the FileSystem
      * @param executorDir is Path
-     * @param type is actionKey
+     * @param type is sharelib key
      * @throws IOException Signals that an I/O exception has occurred.
      */
     private void copyJarContainingClasses(List<Class> classes, FileSystem fs, Path executorDir, String type)
@@ -229,27 +274,51 @@ public class ShareLibService implements Service, Instrumentable {
      * @param fs the FileSystem
      * @param rootDir the root directory
      * @param listOfPaths the list of paths
+     * @param shareLibKey the share lib key
      * @return the path recursively
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    private void getPathRecursively(FileSystem fs, Path rootDir, List<Path> listOfPaths) throws IOException {
+    private void getPathRecursively(FileSystem fs, Path rootDir, List<Path> listOfPaths, String shareLibKey,
+            Map<String, Map<Path, Configuration>> shareLibConfigMap) throws IOException {
         if (rootDir == null) {
             return;
         }
 
-        FileStatus[] status = fs.listStatus(rootDir);
-        if (status == null) {
-            LOG.info("Shared lib " + rootDir + " doesn't exist, not adding to cache");
-            return;
-        }
+        try {
+            if (fs.isFile(new Path(new URI(rootDir.toString()).getPath()))) {
+                Path filePath = new Path(new URI(rootDir.toString()).getPath());
 
-        for (FileStatus file : status) {
-            if (file.isDir()) {
-                getPathRecursively(fs, file.getPath(), listOfPaths);
+                if (isFilePartOfConfList(rootDir)) {
+                    cachePropertyFile(filePath, shareLibKey, shareLibConfigMap);
+                }
+
+                listOfPaths.add(rootDir);
+                return;
             }
-            else {
-                listOfPaths.add(file.getPath());
+
+            FileStatus[] status = fs.listStatus(rootDir);
+            if (status == null) {
+                LOG.info("Shared lib " + rootDir + " doesn't exist, not adding to cache");
+                return;
             }
+
+            for (FileStatus file : status) {
+                if (file.isDir()) {
+                    getPathRecursively(fs, file.getPath(), listOfPaths, shareLibKey, shareLibConfigMap);
+                }
+                else {
+                    if (isFilePartOfConfList(file.getPath())) {
+                        cachePropertyFile(file.getPath(), shareLibKey, shareLibConfigMap);
+                    }
+                    listOfPaths.add(file.getPath());
+                }
+            }
+        }
+        catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
+        catch (JDOMException e) {
+            throw new IOException(e);
         }
     }
 
@@ -257,14 +326,18 @@ public class ShareLibService implements Service, Instrumentable {
         return shareLibMap;
     }
 
+    private Map<String, Map<Path, Path>> getSymlinkMapping() {
+        return symlinkMapping;
+    }
+
     /**
-     * Gets the action system lib common jars.
+     * Gets the action sharelib lib jars.
      *
-     * @param actionKey the action key
+     * @param shareLibKey the sharelib key
      * @return List of paths
-     * @throws IOException
+     * @throws IOException Signals that an I/O exception has occurred.
      */
-    public List<Path> getShareLibJars(String actionKey) throws IOException {
+    public List<Path> getShareLibJars(String shareLibKey) throws IOException {
         // Sharelib map is empty means that on previous or startup attempt of
         // caching sharelib has failed.Trying to reload
         if (shareLibMap.isEmpty() && !shareLibLoadAttempted) {
@@ -275,18 +348,51 @@ public class ShareLibService implements Service, Instrumentable {
                 }
             }
         }
-        return shareLibMap.get(actionKey);
+        checkSymlink(shareLibKey);
+        return shareLibMap.get(shareLibKey);
+    }
+
+    private void checkSymlink(String shareLibKey) throws IOException {
+        if (!HadoopShims.isSymlinkSupported() || symlinkMapping.get(shareLibKey) == null
+                || symlinkMapping.get(shareLibKey).isEmpty()) {
+            return;
+        }
+
+        HadoopShims fileSystem = new HadoopShims(fs);
+        for (Path path : symlinkMapping.get(shareLibKey).keySet()) {
+            if (!symlinkMapping.get(shareLibKey).get(path).equals(fileSystem.getSymLinkTarget(path))) {
+                synchronized (ShareLibService.class) {
+                    Map<String, List<Path>> tmpShareLibMap = new HashMap<String, List<Path>>(shareLibMap);
+
+                    Map<String, Map<Path, Configuration>> tmpShareLibConfigMap = new HashMap<String, Map<Path, Configuration>>(
+                            shareLibConfigMap);
+
+                    Map<String, Map<Path, Path>> tmpSymlinkMapping = new HashMap<String, Map<Path, Path>>(
+                            symlinkMapping);
+
+                    LOG.info(MessageFormat.format("Symlink target for [{0}] has changed, was [{1}], now [{2}]",
+                            shareLibKey, path, fileSystem.getSymLinkTarget(path)));
+                    loadShareLibMetaFile(tmpShareLibMap, tmpSymlinkMapping, tmpShareLibConfigMap, sharelibMappingFile,
+                            shareLibKey);
+                    shareLibMap = tmpShareLibMap;
+                    symlinkMapping = tmpSymlinkMapping;
+                    shareLibConfigMap = tmpShareLibConfigMap;
+                    return;
+                }
+
+            }
+        }
+
     }
 
     /**
      * Gets the launcher jars.
      *
-     * @param actionKey the action key
+     * @param shareLibKey the shareLib key
      * @return launcher jars paths
-     * @throws ClassNotFoundException
-     * @throws IOException
+     * @throws IOException Signals that an I/O exception has occurred.
      */
-    public List<Path> getSystemLibJars(String actionKey) throws IOException {
+    public List<Path> getSystemLibJars(String shareLibKey) throws IOException {
         List<Path> returnList = new ArrayList<Path>();
         // Sharelib map is empty means that on previous or startup attempt of
         // caching launcher jars has failed.Trying to reload
@@ -298,10 +404,12 @@ public class ShareLibService implements Service, Instrumentable {
                     }
                 }
             }
-            returnList = launcherLibMap.get(actionKey);
+            if (launcherLibMap.get(shareLibKey) != null) {
+                returnList.addAll(launcherLibMap.get(shareLibKey));
+            }
         }
-        if (actionKey.equals(JavaActionExecutor.OOZIE_COMMON_LIBDIR)) {
-            List<Path> sharelibList = getShareLibJars(actionKey);
+        if (shareLibKey.equals(JavaActionExecutor.OOZIE_COMMON_LIBDIR)) {
+            List<Path> sharelibList = getShareLibJars(shareLibKey);
             if (sharelibList != null) {
                 returnList.addAll(sharelibList);
             }
@@ -356,17 +464,29 @@ public class ShareLibService implements Service, Instrumentable {
      *
      * @param fs the fs
      * @param prefix the prefix
+     * @param current the current time
      * @throws IOException Signals that an I/O exception has occurred.
-     * @throws ParseException the parse exception
      */
-    private void purgeLibs(FileSystem fs, final String prefix) throws IOException, ParseException {
-        Configuration conf = services.getConf();
+    private void purgeLibs(FileSystem fs, final String prefix, final Date current) throws IOException {
         Path executorLibBasePath = services.get(WorkflowAppService.class).getSystemLibPath();
-
         PathFilter directoryFilter = new PathFilter() {
             @Override
             public boolean accept(Path path) {
-                return path.getName().startsWith(prefix);
+                if (path.getName().startsWith(prefix)) {
+                    String name = path.getName();
+                    String time = name.substring(prefix.length());
+                    Date d = null;
+                    try {
+                        d = dateFormat.parse(time);
+                    }
+                    catch (ParseException e) {
+                        return false;
+                    }
+                    return (current.getTime() - d.getTime()) > retentionTime;
+                }
+                else {
+                    return false;
+                }
             }
         };
         FileStatus[] dirList = fs.listStatus(executorLibBasePath, directoryFilter);
@@ -376,20 +496,14 @@ public class ShareLibService implements Service, Instrumentable {
             public int compare(FileStatus o1, FileStatus o2) {
                 return o2.getPath().getName().compareTo(o1.getPath().getName());
             }
-
         });
-        Date current = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime();
-        // Always keep top two, so start counter from 3
-        long retentionTime = 1000 * 60 * 60 * 24 * conf.getInt(LAUNCHERJAR_LIB_RETENTION, 7);
-        for (int i = 2; i < dirList.length; i++) {
+
+        // Logic is to keep all share-lib between current timestamp and 7days old + 1 latest sharelib older than 7 days.
+        // refer OOZIE-1761
+        for (int i = 1; i < dirList.length; i++) {
             Path dirPath = dirList[i].getPath();
-            String name = dirPath.getName().toString();
-            String time = name.substring(prefix.length());
-            Date d = dateFormat.parse(time);
-            if ((current.getTime() - d.getTime()) > retentionTime) {
-                fs.delete(dirPath, true);
-                LOG.info("Deleted old launcher jar lib directory {0}", dirPath.getName());
-            }
+            fs.delete(dirPath, true);
+            LOG.info("Deleted old launcher jar lib directory {0}", dirPath.getName());
         }
     }
 
@@ -397,7 +511,6 @@ public class ShareLibService implements Service, Instrumentable {
     public void destroy() {
         shareLibMap.clear();
         launcherLibMap.clear();
-
     }
 
     @Override
@@ -422,11 +535,13 @@ public class ShareLibService implements Service, Instrumentable {
         }
 
         Map<String, List<Path>> tempShareLibMap = new HashMap<String, List<Path>>();
+        Map<String, Map<Path, Path>> tmpSymlinkMapping = new HashMap<String, Map<Path, Path>>();
+        Map<String, Map<Path, Configuration>> tmpShareLibConfigMap = new HashMap<String, Map<Path, Configuration>>();
 
-        if (!StringUtils.isEmpty(sharelibMappingFile)) {
-            String sharelibMetaFileNewTimeStamp = JsonUtils.formatDateRfc822(new Date(fs.getFileStatus(
-                    new Path(sharelibMappingFile)).getModificationTime()),"GMT");
-            loadShareLibMetaFile(tempShareLibMap, sharelibMappingFile);
+        if (!StringUtils.isEmpty(sharelibMappingFile.trim())) {
+            String sharelibMetaFileNewTimeStamp = JsonUtils.formatDateRfc822(
+                    new Date(fs.getFileStatus(new Path(sharelibMappingFile)).getModificationTime()), "GMT");
+            loadShareLibMetaFile(tempShareLibMap, tmpSymlinkMapping, tmpShareLibConfigMap, sharelibMappingFile, null);
             status.put("sharelibMetaFile", sharelibMappingFile);
             status.put("sharelibMetaFileNewTimeStamp", sharelibMetaFileNewTimeStamp);
             status.put("sharelibMetaFileOldTimeStamp", sharelibMetaFileOldTimeStamp);
@@ -434,8 +549,8 @@ public class ShareLibService implements Service, Instrumentable {
         }
         else {
             Path shareLibpath = getLatestLibPath(services.get(WorkflowAppService.class).getSystemLibPath(),
-                    SHARED_LIB_PREFIX);
-            loadShareLibfromDFS(tempShareLibMap, shareLibpath);
+                    SHARE_LIB_PREFIX);
+            loadShareLibfromDFS(tempShareLibMap, shareLibpath, tmpShareLibConfigMap);
 
             if (shareLibpath != null) {
                 status.put("sharelibDirNew", shareLibpath.toString());
@@ -445,18 +560,20 @@ public class ShareLibService implements Service, Instrumentable {
 
         }
         shareLibMap = tempShareLibMap;
+        symlinkMapping = tmpSymlinkMapping;
+        shareLibConfigMap = tmpShareLibConfigMap;
         return status;
     }
 
     /**
-     * Update share lib cache. Parse the share lib directory and each sub
-     * directory is a action key
+     * Update share lib cache. Parse the share lib directory and each sub directory is a action key
      *
      * @param shareLibMap the share lib jar map
      * @param shareLibpath the share libpath
      * @throws IOException Signals that an I/O exception has occurred.
      */
-    private void loadShareLibfromDFS(Map<String, List<Path>> shareLibMap, Path shareLibpath) throws IOException {
+    private void loadShareLibfromDFS(Map<String, List<Path>> shareLibMap, Path shareLibpath,
+            Map<String, Map<Path, Configuration>> shareLibConfigMap) throws IOException {
 
         if (shareLibpath == null) {
             LOG.info("No share lib directory found");
@@ -475,7 +592,7 @@ public class ShareLibService implements Service, Instrumentable {
                 continue;
             }
             List<Path> listOfPaths = new ArrayList<Path>();
-            getPathRecursively(fs, dir.getPath(), listOfPaths);
+            getPathRecursively(fs, dir.getPath(), listOfPaths, dir.getPath().getName(), shareLibConfigMap);
             shareLibMap.put(dir.getPath().getName(), listOfPaths);
             LOG.info("Share lib for " + dir.getPath().getName() + ":" + listOfPaths);
 
@@ -484,16 +601,18 @@ public class ShareLibService implements Service, Instrumentable {
     }
 
     /**
-     * Load share lib text file. Sharelib mapping files contains list of
-     * key=value. where key is the action key and value is the DFS location of
-     * sharelib files.
+     * Load share lib text file. Sharelib mapping files contains list of key=value. where key is the action key and
+     * value is the DFS location of sharelib files.
      *
      * @param shareLibMap the share lib jar map
-     * @param sharelipFileMapping the sharelip file mapping
+     * @param symlinkMapping the symlink mapping
+     * @param sharelibFileMapping the sharelib file mapping
+     * @param shareLibKey the share lib key
      * @throws IOException Signals that an I/O exception has occurred.
+     * @parm shareLibKey the sharelib key
      */
-    @SuppressWarnings("unchecked")
-    private void loadShareLibMetaFile(Map<String, List<Path>> shareLibMap, String sharelibFileMapping)
+    private void loadShareLibMetaFile(Map<String, List<Path>> shareLibMap, Map<String, Map<Path, Path>> symlinkMapping,
+            Map<String, Map<Path, Configuration>> shareLibConfigMap, String sharelibFileMapping, String shareLibKey)
             throws IOException {
 
         Path shareFileMappingPath = new Path(sharelibFileMapping);
@@ -504,22 +623,35 @@ public class ShareLibService implements Service, Instrumentable {
 
         for (Object keyObject : prop.keySet()) {
             String key = (String) keyObject;
-            if (key.toLowerCase().startsWith(SHARE_LIB_CONF_PREFIX)) {
-                String mapKey = key.substring(SHARE_LIB_CONF_PREFIX.length() + 1);
-                String pathList[] = ((String) prop.get(key)).split(",");
-                List<Path> listOfPaths = new ArrayList<Path>();
-                for (String dfsPath : pathList) {
-                    getPathRecursively(fs, new Path(dfsPath), listOfPaths);
-                }
-                shareLibMap.put(mapKey, listOfPaths);
-                LOG.info("Share lib for " + mapKey + ":" + listOfPaths);
-
+            String mapKey = key.substring(SHARE_LIB_CONF_PREFIX.length() + 1);
+            if (key.toLowerCase().startsWith(SHARE_LIB_CONF_PREFIX)
+                    && (shareLibKey == null || shareLibKey.equals(mapKey))) {
+                loadSharelib(shareLibMap, symlinkMapping, shareLibConfigMap, mapKey,
+                        ((String) prop.get(key)).split(","));
             }
-            else {
-                LOG.info(" Not adding " + key + " to sharelib, not prefix with " + SHARE_LIB_CONF_PREFIX);
-            }
-
         }
+    }
+
+    private void loadSharelib(Map<String, List<Path>> tmpShareLibMap, Map<String, Map<Path, Path>> tmpSymlinkMapping,
+            Map<String, Map<Path, Configuration>> shareLibConfigMap, String shareLibKey, String pathList[])
+            throws IOException {
+        List<Path> listOfPaths = new ArrayList<Path>();
+        Map<Path, Path> symlinkMappingforAction = new HashMap<Path, Path>();
+        HadoopShims fileSystem = new HadoopShims(fs);
+
+        for (String dfsPath : pathList) {
+            Path path = new Path(dfsPath);
+            getPathRecursively(fs, new Path(dfsPath), listOfPaths, shareLibKey, shareLibConfigMap);
+            if (HadoopShims.isSymlinkSupported() && fileSystem.isSymlink(path)) {
+                symlinkMappingforAction.put(path, fileSystem.getSymLinkTarget(path));
+            }
+        }
+        if (HadoopShims.isSymlinkSupported()) {
+            LOG.info("symlink for " + shareLibKey + ":" + symlinkMappingforAction);
+            tmpSymlinkMapping.put(shareLibKey, symlinkMappingforAction);
+        }
+        tmpShareLibMap.put(shareLibKey, listOfPaths);
+        LOG.info("Share lib for " + shareLibKey + ":" + listOfPaths);
     }
 
     /**
@@ -529,7 +661,7 @@ public class ShareLibService implements Service, Instrumentable {
      */
     private Path getLauncherlibPath() {
         String formattedDate = dateFormat.format(Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime());
-        Path tmpLauncherLibPath = new Path(services.get(WorkflowAppService.class).getSystemLibPath(), LAUNCHER_PREFIX
+        Path tmpLauncherLibPath = new Path(services.get(WorkflowAppService.class).getSystemLibPath(), LAUNCHER_LIB_PREFIX
                 + formattedDate);
         return tmpLauncherLibPath;
     }
@@ -568,6 +700,10 @@ public class ShareLibService implements Service, Instrumentable {
                 max = d;
             }
         }
+        // If there are no timestamped directories, fall back to root directory
+        if (path == null) {
+            path = rootDir;
+        }
         return path;
     }
 
@@ -583,7 +719,7 @@ public class ShareLibService implements Service, Instrumentable {
         instr.addVariable("libs", "sharelib.source", new Instrumentation.Variable<String>() {
             @Override
             public String getValue() {
-                if (!StringUtils.isEmpty(sharelibMappingFile)) {
+                if (!StringUtils.isEmpty(sharelibMappingFile.trim())) {
                     return SHARELIB_MAPPING_FILE;
                 }
                 return WorkflowAppService.SYSTEM_LIB_PATH;
@@ -592,7 +728,7 @@ public class ShareLibService implements Service, Instrumentable {
         instr.addVariable("libs", "sharelib.mapping.file", new Instrumentation.Variable<String>() {
             @Override
             public String getValue() {
-                if (!StringUtils.isEmpty(sharelibMappingFile)) {
+                if (!StringUtils.isEmpty(sharelibMappingFile.trim())) {
                     return sharelibMappingFile;
                 }
                 return "(none)";
@@ -604,7 +740,7 @@ public class ShareLibService implements Service, Instrumentable {
                 String sharelibPath = "(unavailable)";
                 try {
                     Path libPath = getLatestLibPath(services.get(WorkflowAppService.class).getSystemLibPath(),
-                            SHARED_LIB_PREFIX);
+                            SHARE_LIB_PREFIX);
                     if (libPath != null) {
                         sharelibPath = libPath.toUri().toString();
                     }
@@ -641,5 +777,107 @@ public class ShareLibService implements Service, Instrumentable {
                 return getLauncherlibPath().toUri().toString();
             }
         });
+        instr.addVariable("libs", "sharelib.symlink.mapping", new Instrumentation.Variable<String>() {
+            @Override
+            public String getValue() {
+                Map<String, Map<Path, Path>> shareLibSymlinkMapping = getSymlinkMapping();
+                if (shareLibSymlinkMapping != null && !shareLibSymlinkMapping.isEmpty()
+                        && shareLibSymlinkMapping.values() != null && !shareLibSymlinkMapping.values().isEmpty()) {
+                    StringBuffer bf = new StringBuffer();
+                    for (Entry<String, Map<Path, Path>> key : shareLibSymlinkMapping.entrySet())
+                        if (key.getKey() != null && !key.getValue().isEmpty()) {
+                            for (Path path : key.getValue().keySet()) {
+                                bf.append(path).append("(").append(key).append(")").append("=>")
+                                        .append(shareLibSymlinkMapping.get(key).get(path)).append(",");
+                            }
+
+                        }
+                    return bf.toString();
+                }
+                return "(none)";
+            }
+        });
+
+        instr.addVariable("libs", "sharelib.cached.config.file", new Instrumentation.Variable<String>() {
+            @Override
+            public String getValue() {
+                Map<String, Map<Path, Configuration>> shareLibConfigMap = getShareLibConfigMap();
+                if (shareLibConfigMap != null && !shareLibConfigMap.isEmpty()) {
+                    StringBuffer bf = new StringBuffer();
+
+                    for (String path : shareLibConfigMap.keySet()) {
+                        bf.append(path).append(";");
+                    }
+                    return bf.toString();
+                }
+                return "(none)";
+            }
+        });
+
+    }
+
+    /**
+     * Returns file system for shared libraries.
+     * <p/>
+     * If WorkflowAppService#getSystemLibPath doesn't have authority then a default one assumed
+     *
+     * @return file system for shared libraries
+     */
+    public FileSystem getFileSystem() {
+        return fs;
+    }
+
+    /**
+     * Cache XML conf file
+     *
+     * @param hdfsPath the hdfs path
+     * @param shareLibKey the share lib key
+     * @throws IOException Signals that an I/O exception has occurred.
+     * @throws JDOMException
+     */
+    private void cachePropertyFile(Path hdfsPath, String shareLibKey,
+            Map<String, Map<Path, Configuration>> shareLibConfigMap) throws IOException, JDOMException {
+        Map<Path, Configuration> confMap = shareLibConfigMap.get(shareLibKey);
+        if (confMap == null) {
+            confMap = new HashMap<Path, Configuration>();
+            shareLibConfigMap.put(shareLibKey, confMap);
+        }
+        Configuration xmlConf = new XConfiguration(fs.open(hdfsPath));
+        confMap.put(hdfsPath, xmlConf);
+
+    }
+
+    private void cacheActionKeySharelibConfList() {
+        ActionService actionService = Services.get().get(ActionService.class);
+        Set<String> actionTypes = actionService.getActionTypes();
+        for (String key : actionTypes) {
+            ActionExecutor executor = actionService.getExecutor(key);
+            if (executor instanceof JavaActionExecutor) {
+                JavaActionExecutor jexecutor = (JavaActionExecutor) executor;
+                actionConfSet.addAll(
+                new HashSet<String>(Arrays.asList(jexecutor.getShareLibFilesForActionConf() == null ? new String[0]
+                        : jexecutor.getShareLibFilesForActionConf())));
+            }
+        }
+    }
+
+    public Configuration getShareLibConf(String inputKey, Path path) {
+        Configuration conf = new Configuration();
+        if (shareLibConfigMap.containsKey(inputKey)) {
+            conf = shareLibConfigMap.get(inputKey).get(path);
+        }
+
+        return conf;
+    }
+
+    @VisibleForTesting
+    public Map<String, Map<Path, Configuration>> getShareLibConfigMap() {
+        return shareLibConfigMap;
+    }
+
+    private boolean isFilePartOfConfList(Path path) throws URISyntaxException {
+        String fragmentName = new URI(path.toString()).getFragment();
+        String fileName = fragmentName == null ? path.getName() : fragmentName;
+        return actionConfSet.contains(fileName);
     }
 }

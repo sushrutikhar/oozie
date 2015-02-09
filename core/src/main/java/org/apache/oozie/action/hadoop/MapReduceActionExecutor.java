@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.IOException;
@@ -32,7 +33,7 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
-import org.apache.oozie.service.Services;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
@@ -66,6 +67,18 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     }
 
     @Override
+    protected String getActualExternalId(WorkflowAction action) {
+        String launcherJobId = action.getExternalId();
+        String childId = action.getExternalChildIDs();
+
+        if (childId != null && !childId.isEmpty()) {
+            return childId;
+        } else {
+            return launcherJobId;
+        }
+    }
+
+    @Override
     protected String getLauncherMain(Configuration launcherConf, Element actionXml) {
         String mainClass;
         Namespace ns = actionXml.getNamespace();
@@ -86,7 +99,7 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     @Override
     Configuration setupLauncherConf(Configuration conf, Element actionXml, Path appPath, Context context) throws ActionExecutorException {
         super.setupLauncherConf(conf, actionXml, appPath, context);
-        conf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
+        conf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", false);
         return conf;
     }
 
@@ -135,7 +148,7 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
             // Resolve uber jar path (has to be done after super because oozie.mapreduce.uber.jar is under <configuration>)
             String uberJar = actionConf.get(MapReduceMain.OOZIE_MAPREDUCE_UBER_JAR);
             if (uberJar != null) {
-                if (!Services.get().getConf().getBoolean(OOZIE_MAPREDUCE_UBER_JAR_ENABLE, false)) {
+                if (!ConfigurationService.getBoolean(OOZIE_MAPREDUCE_UBER_JAR_ENABLE)){
                     throw new ActionExecutorException(ActionExecutorException.ErrorType.ERROR, "MR003",
                             "{0} property is not allowed.  Set {1} to true in oozie-site to enable.",
                             MapReduceMain.OOZIE_MAPREDUCE_UBER_JAR, OOZIE_MAPREDUCE_UBER_JAR_ENABLE);
@@ -165,6 +178,9 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
                 actionConf.set(MapReduceMain.OOZIE_MAPREDUCE_UBER_JAR, "");
             }
         }
+
+        // child job cancel delegation token for mapred action
+        actionConf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
 
         return actionConf;
     }
@@ -321,15 +337,9 @@ public class MapReduceActionExecutor extends JavaActionExecutor {
     protected RunningJob getRunningJob(Context context, WorkflowAction action, JobClient jobClient) throws Exception{
 
         RunningJob runningJob;
-        String launcherJobId = action.getExternalId();
-        String childJobId = action.getExternalChildIDs();
+        String jobId = getActualExternalId(action);
 
-        if (childJobId != null && childJobId.length() > 0) {
-            runningJob = jobClient.getJob(JobID.forName(childJobId));
-        }
-        else {
-            runningJob = jobClient.getJob(JobID.forName(launcherJobId));
-        }
+        runningJob = jobClient.getJob(JobID.forName(jobId));
 
         return runningJob;
     }

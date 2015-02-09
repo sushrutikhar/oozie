@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import javax.persistence.EntityManager;
@@ -41,8 +42,9 @@ public class CoordinatorJobGetForUserAppnameJPAExecutor implements JPAExecutor<C
      *
      * @see org.apache.oozie.executor.jpa.JPAExecutor#getName()
      */
+    @Override
     public String getName() {
-        return "CoordJobGetForUserAppnameJPAExecutor";
+        return "CoordinatorJobGetForUserAppnameJPAExecutor";
     }
 
     /*

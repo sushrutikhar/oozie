@@ -16,16 +16,17 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.1.12-SNAPSHOT</version>
+        <version>4.2.0-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-sharelib</artifactId>
-    <version>4.1.12-SNAPSHOT</version>
+    <version>4.2.0-SNAPSHOT</version>
     <description>Apache Oozie Share Lib</description>
     <name>Apache Oozie Share Lib</name>
     <packaging>pom</packaging>
@@ -35,9 +36,11 @@
         <module>hcatalog</module>
         <module>pig</module>
         <module>hive</module>
+        <module>hive2</module>
         <module>sqoop</module>
         <module>oozie</module>
         <module>distcp</module>
+        <module>spark</module>
     </modules>
 
     <build>

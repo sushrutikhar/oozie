@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.hadoop.conf.Configuration;
@@ -55,7 +56,9 @@ import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor.WorkflowActionQuery;
 import org.apache.oozie.service.RecoveryService.RecoveryRunnable;
 import org.apache.oozie.store.CoordinatorStore;
 import org.apache.oozie.store.StoreException;
@@ -68,7 +71,6 @@ import org.apache.oozie.util.XConfiguration;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.workflow.WorkflowInstance;
-import org.junit.Ignore;
 
 import java.io.File;
 import java.io.FileWriter;
@@ -95,7 +97,7 @@ public class TestRecoveryService extends XDataTestCase {
         setSystemProperty(SchemaService.WF_CONF_EXT_SCHEMAS, "wf-ext-schema.xsd");
         services = new Services();
         services.init();
-        services.get(ActionService.class).register(ForTestingActionExecutor.class);
+        services.get(ActionService.class).registerAndInitExecutor(ForTestingActionExecutor.class);
 
     }
 
@@ -210,14 +212,21 @@ public class TestRecoveryService extends XDataTestCase {
      */
     public void testWorkflowActionRecoveryUserRetry() throws Exception {
         final JPAService jpaService = Services.get().get(JPAService.class);
-        WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
-        WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.USER_RETRY);
+        WorkflowJobBean job1 = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action1 = this.addRecordToWfActionTable(job1.getId(), "1", WorkflowAction.Status.USER_RETRY);
+
+        WorkflowJobBean job2 = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action2 = createWorkflowActionSetPending(job2.getId(), WorkflowAction.Status.USER_RETRY);
+        //Default recovery created time is 7 days.
+        action2.setCreatedTime(new Date(new Date().getTime() - 8 * RecoveryService.ONE_DAY_MILLISCONDS));
+        WorkflowActionInsertJPAExecutor actionInsertCmd = new WorkflowActionInsertJPAExecutor(action2);
+        jpaService.execute(actionInsertCmd);
 
         Runnable recoveryRunnable = new RecoveryRunnable(0, 60, 60);
         recoveryRunnable.run();
         sleep(3000);
 
-        final WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+        final WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action1.getId());
 
         waitFor(5000, new Predicate() {
             public boolean evaluate() throws Exception {
@@ -225,18 +234,23 @@ public class TestRecoveryService extends XDataTestCase {
                 return a.getExternalId() != null;
             }
         });
-        action = jpaService.execute(wfActionGetCmd);
-        assertNotNull(action.getExternalId());
-        assertEquals(WorkflowAction.Status.RUNNING, action.getStatus());
+        action1 = jpaService.execute(wfActionGetCmd);
+        assertNotNull(action1.getExternalId());
+        assertEquals(WorkflowAction.Status.RUNNING, action1.getStatus());
 
-        ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(job, action, false, false);
+        //Action 2 should not get recover as it's created time is older then 7 days
+        action2= WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, action2.getId());
+        assertNull(action2.getExternalId());
+        assertEquals(WorkflowAction.Status.USER_RETRY, action2.getStatus());
+
+        ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(job1, action1, false, false);
         MapReduceActionExecutor actionExecutor = new MapReduceActionExecutor();
-        JobConf conf = actionExecutor.createBaseHadoopConf(context, XmlUtils.parseXml(action.getConf()));
+        JobConf conf = actionExecutor.createBaseHadoopConf(context, XmlUtils.parseXml(action1.getConf()));
         String user = conf.get("user.name");
         String group = conf.get("group.name");
         JobClient jobClient = Services.get().get(HadoopAccessorService.class).createJobClient(user, conf);
 
-        String launcherId = action.getExternalId();
+        String launcherId = action1.getExternalId();
 
         final RunningJob launcherJob = jobClient.getJob(JobID.forName(launcherId));
 
@@ -431,8 +445,8 @@ public class TestRecoveryService extends XDataTestCase {
         }
     }
 
-    @Ignore
-    public void _testCoordActionRecoveryServiceForWaitingRegisterPartition() throws Exception {
+
+    public void testCoordActionRecoveryServiceForWaitingRegisterPartition() throws Exception {
         services.destroy();
         services = super.setupServicesForHCatalog();
         services.getConf().set(URIHandlerService.URI_HANDLERS,
@@ -854,6 +868,7 @@ public class TestRecoveryService extends XDataTestCase {
         action.setType("map-reduce");
         action.setTransition("transition");
         action.setStatus(status);
+        action.setCreatedTime(new Date());
         action.setStartTime(new Date());
         action.setEndTime(new Date());
         action.setLastCheckTime(new Date());

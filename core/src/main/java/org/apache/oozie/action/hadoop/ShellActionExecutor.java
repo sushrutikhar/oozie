@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.action.hadoop;
 
 import java.util.List;
@@ -116,7 +117,6 @@ public class ShellActionExecutor extends JavaActionExecutor {
     protected Configuration setupLauncherConf(Configuration conf, Element actionXml, Path appPath, Context context)
             throws ActionExecutorException {
         super.setupLauncherConf(conf, actionXml, appPath, context);
-        conf.setBoolean("mapreduce.job.complete.cancel.delegation.tokens", true);
         addDefaultChildEnv(conf);
         return conf;
     }

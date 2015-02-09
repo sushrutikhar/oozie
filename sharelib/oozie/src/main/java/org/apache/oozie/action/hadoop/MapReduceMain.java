@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
@@ -45,10 +46,17 @@ public class MapReduceMain extends LauncherMain {
         // loading action conf prepared by Oozie
         Configuration actionConf = new Configuration(false);
         actionConf.addResource(new Path("file:///", System.getProperty("oozie.action.conf.xml")));
+        setYarnTag(actionConf);
 
-        logMasking("Map-Reduce job configuration:", new HashSet<String>(), actionConf);
+        JobConf jobConf = new JobConf();
+        addActionConf(jobConf, actionConf);
 
-        String jobId = LauncherMainHadoopUtils.getYarnJobForMapReduceAction(actionConf);
+        // Run a config class if given to update the job conf
+        runConfigClass(jobConf);
+
+        logMasking("Map-Reduce job configuration:", new HashSet<String>(), jobConf);
+
+        String jobId = LauncherMainHadoopUtils.getYarnJobForMapReduceAction(jobConf);
         File idFile = new File(System.getProperty(LauncherMapper.ACTION_PREFIX + LauncherMapper.ACTION_DATA_NEW_ID));
         if (jobId != null) {
             if (!idFile.exists()) {
@@ -63,7 +71,7 @@ public class MapReduceMain extends LauncherMain {
             System.out.println("Submitting Oozie action Map-Reduce job");
             System.out.println();
             // submitting job
-            RunningJob runningJob = submitJob(actionConf);
+            RunningJob runningJob = submitJob(jobConf);
 
             jobId = runningJob.getID().toString();
             writeJobIdFile(idFile, jobId);
@@ -86,12 +94,9 @@ public class MapReduceMain extends LauncherMain {
         }
     }
 
-    protected RunningJob submitJob(Configuration actionConf) throws Exception {
-        JobConf jobConf = new JobConf();
-        addActionConf(jobConf, actionConf);
-
+    protected RunningJob submitJob(JobConf jobConf) throws Exception {
         // Set for uber jar
-        String uberJar = actionConf.get(OOZIE_MAPREDUCE_UBER_JAR);
+        String uberJar = jobConf.get(OOZIE_MAPREDUCE_UBER_JAR);
         if (uberJar != null && uberJar.trim().length() > 0) {
             jobConf.setJar(uberJar);
         }

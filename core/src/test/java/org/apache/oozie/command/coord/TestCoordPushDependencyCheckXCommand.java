@@ -15,7 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
+
+import java.io.ByteArrayOutputStream;
+import java.util.List;
 
 import org.apache.log4j.Appender;
 import org.apache.log4j.Layout;
@@ -42,11 +46,7 @@ import org.apache.oozie.util.XmlUtils;
 import org.jdom.Element;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-
-import java.io.ByteArrayOutputStream;
-import java.util.List;
 
 public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
     private String server;
@@ -238,9 +238,8 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
 
     }
 
-    @Ignore
     @Test
-    public void _testTimeOutWithUnresolvedMissingDependencies() throws Exception {
+    public void testTimeOutWithUnresolvedMissingDependencies() throws Exception {
         String db = "default";
         String table = "tablename";
         String newHCatDependency1 = "hcat://" + server + "/" + db + "/" + table + "/dt=20120430;country=brazil";
@@ -354,7 +353,7 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
     }
 
     @Test
-    public void _testRequeueOnException() throws Exception {
+    public void testRequeueOnException() throws Exception {
         Services.get().getConf().setInt(RecoveryService.CONF_SERVICE_INTERVAL, 6000);
         // Test timeout when table containing missing dependencies is dropped in between
         String newHCatDependency1 = "hcat://" + server + "/nodb/notable/dt=20120430;country=brazil";
@@ -466,5 +465,4 @@ public class TestCoordPushDependencyCheckXCommand extends XDataTestCase {
             throw new Exception("Action ID " + actionId + " was not stored properly in db");
         }
     }
-
 }

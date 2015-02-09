@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie;
 
 import java.io.IOException;
@@ -170,6 +171,19 @@ public abstract class BaseEngine {
             throws IOException, BaseEngineException;
 
     /**
+     * Stream error log of a job.
+     *
+     * @param jobId job Id.
+     * @param writer writer to stream the log to.
+     * @param params additional parameters from the request
+     * @throws IOException thrown if the log cannot be streamed.
+     * @throws BaseEngineException thrown if there is error in getting the Workflow/Coordinator Job Information for
+     *         jobId.
+     */
+    public abstract void streamErrorLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BaseEngineException;
+
+    /**
      * Return the workflow Job ID for an external ID.
      * <p/>
      * This is reverse lookup for recovery purposes.
@@ -217,4 +231,12 @@ public abstract class BaseEngine {
         }
     }
 
+    /**
+     * Return the status for a Job ID
+     *
+     * @param jobId job Id.
+     * @return the job's status
+     * @throws BaseEngineException thrown if the job's status could not be obtained
+     */
+    public abstract String getJobStatus(String jobId) throws BaseEngineException;
 }

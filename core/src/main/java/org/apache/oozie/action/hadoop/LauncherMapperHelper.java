@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.BufferedReader;
@@ -153,23 +154,29 @@ public class LauncherMapperHelper {
         fs.mkdirs(actionDir);
 
         OutputStream os = fs.create(new Path(actionDir, LauncherMapper.ACTION_CONF_XML));
-        actionConf.writeXml(os);
-        os.close();
+        try {
+            actionConf.writeXml(os);
+        } finally {
+            IOUtils.closeSafely(os);
+        }
+
         launcherConf.setInputFormat(OozieLauncherInputFormat.class);
         launcherConf.set("mapred.output.dir", new Path(actionDir, "output").toString());
     }
 
-    public static void setupYarnRestartHandling(JobConf launcherJobConf, Configuration actionConf, String actionId)
+    public static void setupYarnRestartHandling(JobConf launcherJobConf, Configuration actionConf, String launcherTag)
             throws NoSuchAlgorithmException {
         launcherJobConf.setLong("oozie.job.launch.time", System.currentTimeMillis());
         // Tags are limited to 100 chars so we need to hash them to make sure (the actionId otherwise doesn't have a max length)
-        String tag = getTag(actionId);
-        actionConf.set("mapreduce.job.tags", tag);
+        String tag = getTag(launcherTag);
+        // keeping the child.mapreduce.job.tags instead of mapreduce.job.tags to avoid killing launcher itself.
+        // mapreduce.job.tags should only go to child job launch by launcher.
+        actionConf.set(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS, tag);
     }
 
-    private static String getTag(String actionId) throws NoSuchAlgorithmException {
+    private static String getTag(String launcherTag) throws NoSuchAlgorithmException {
         MessageDigest digest = MessageDigest.getInstance("MD5");
-        digest.update(actionId.getBytes(), 0, actionId.length());
+        digest.update(launcherTag.getBytes(), 0, launcherTag.length());
         String md5 = "oozie-" + new BigInteger(1, digest.digest()).toString(16);
         return md5;
     }

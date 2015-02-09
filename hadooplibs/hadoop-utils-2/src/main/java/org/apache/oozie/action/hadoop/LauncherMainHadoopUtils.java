@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.IOException;
@@ -33,27 +34,25 @@ import org.apache.hadoop.yarn.client.ClientRMProxy;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.mapreduce.TypeConverter;
+import org.apache.log4j.Logger;
 
 public class LauncherMainHadoopUtils {
+    private static Logger logger = Logger.getLogger("LauncherMainHadoopUtils");
 
     private LauncherMainHadoopUtils() {
     }
 
     private static Set<ApplicationId> getChildYarnJobs(Configuration actionConf) {
+        System.out.println("Fetching child yarn jobs");
         Set<ApplicationId> childYarnJobs = new HashSet<ApplicationId>();
-        long startTime = 0L;
-        try {
-            startTime = Long.parseLong((System.getProperty("oozie.job.launch.time")));
-        } catch(NumberFormatException nfe) {
-            throw new RuntimeException("Could not find Oozie job launch time", nfe);
+        if (actionConf.get("mapreduce.job.tags") == null) {
+            logger.warn("Could not find Yarn tags property (mapreduce.job.tags)");
+            return childYarnJobs;
         }
         String tag = actionConf.get("mapreduce.job.tags");
-        if (tag == null) {
-            throw new RuntimeException("Could not find Yarn tags property (mapreduce.job.tags)");
-        }
+        System.out.println( "tag id : " + tag);
         GetApplicationsRequest gar = GetApplicationsRequest.newInstance();
         gar.setScope(ApplicationsRequestScope.OWN);
-        gar.setStartRange(startTime, System.currentTimeMillis());
         gar.setApplicationTags(Collections.singleton(tag));
         try {
             ApplicationClientProtocol proxy = ClientRMProxy.createRMProxy(actionConf, ApplicationClientProtocol.class);
@@ -67,6 +66,7 @@ public class LauncherMainHadoopUtils {
         } catch (YarnException ye) {
             throw new RuntimeException("Exception occurred while finding child jobs", ye);
         }
+        System.out.println(childYarnJobs.size() + " Child yarn jobs are found");
         return childYarnJobs;
     }
 

@@ -1,0 +1,267 @@
+549176 [pool-1-thread-1] INFO  org.apache.pig.Main  - Apache Pig version 0.12.1 (r1585011) compiled Apr 07 2014, 12:18:29
+549176 [pool-1-thread-1] INFO  org.apache.pig.Main  - Logging error messages to: /Users/oozie/OOZIE-2129/sharelib/pig/pig-1423336121406.log
+549192 [pool-1-thread-1] INFO  org.apache.pig.impl.util.Utils  - Default bootup file /Users/oozie/.pigbootup not found
+549227 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.HExecutionEngine  - Connecting to hadoop file system at: hdfs://localhost:64455
+549228 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.HExecutionEngine  - Connecting to map-reduce job tracker at: test
+549231 [pool-1-thread-1] DEBUG org.apache.pig.parser.QueryParserDriver  - Original macro AST:
+(QUERY (STATEMENT A (load '/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/input' (FUNC PigStorage ':'))) (STATEMENT B (foreach A (FOREACH_PLAN_SIMPLE (generate $0 (FIELD_DEF id))))) (STATEMENT (store B '/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/output' (FUNC PigStorage))))
+
+549231 [pool-1-thread-1] DEBUG org.apache.pig.parser.QueryParserDriver  - macro AST after import:
+(QUERY (STATEMENT A (load '/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/input' (FUNC PigStorage ':'))) (STATEMENT B (foreach A (FOREACH_PLAN_SIMPLE (generate $0 (FIELD_DEF id))))) (STATEMENT (store B '/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/output' (FUNC PigStorage))))
+
+549231 [pool-1-thread-1] DEBUG org.apache.pig.parser.QueryParserDriver  - Resulting macro AST:
+(QUERY (STATEMENT A (load '/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/input' (FUNC PigStorage ':'))) (STATEMENT B (foreach A (FOREACH_PLAN_SIMPLE (generate $0 (FIELD_DEF id))))) (STATEMENT (store B '/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/output' (FUNC PigStorage))))
+
+549243 [pool-1-thread-1] DEBUG org.apache.pig.builtin.JsonMetadata  - Could not find schema file for /user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/input
+549248 [pool-1-thread-1] INFO  org.apache.pig.tools.pigstats.ScriptState  - Pig features used in the script: UNKNOWN
+549249 [pool-1-thread-1] INFO  org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer  - {RULES_ENABLED=[AddForEach, ColumnMapKeyPrune, GroupByConstParallelSetter, LimitOptimizer, LoadTypeCastInserter, MergeFilter, MergeForEach, NewPartitionFilterOptimizer, PartitionFilterOptimizer, PushDownForEachFlatten, PushUpFilter, SplitFilter, StreamTypeCastInserter], RULES_DISABLED=[FilterLogicExpressionSimplifier]}
+549252 [pool-1-thread-1] DEBUG org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema  - t: 50 Bag: 120 tuple: 110
+549252 [pool-1-thread-1] DEBUG org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema  - t: 50 Bag: 120 tuple: 110
+549253 [pool-1-thread-1] DEBUG org.apache.pig.impl.logicalLayer.schema.Schema$FieldSchema  - t: 50 Bag: 120 tuple: 110
+549253 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MRCompiler  - File concatenation threshold: 100 optimistic? false
+549254 [pool-1-thread-1] DEBUG org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SampleOptimizer  - Not a sampling job.
+549255 [pool-1-thread-1] DEBUG org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.SecondaryKeyOptimizer  - Cannot find POLocalRearrange or POUnion in map leaf, skip secondary key optimizing
+549255 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MultiQueryOptimizer  - MR plan size before optimization: 1
+549255 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MultiQueryOptimizer  - MR plan size after optimization: 1
+549277 [pool-1-thread-1] INFO  org.apache.pig.tools.pigstats.ScriptState  - Pig script settings are added to the job
+549278 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler  - mapred.job.reduce.markreset.buffer.percent is not set, set to default 0.3
+549279 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler  - creating jar file Job3912860214958865953.jar
+549285 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/org/apache/pig/pig/0.12.1/pig-0.12.1-h2.jar for prefix org/apache/pig to job jar
+549953 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/org/apache/pig/pig/0.12.1/pig-0.12.1-h2.jar for prefix org/apache/tools/bzip2r to job jar
+550055 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/dk/brics/automaton/automaton/1.11-8/automaton-1.11-8.jar for prefix dk/brics/automaton to job jar
+550068 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/org/antlr/antlr-runtime/3.4/antlr-runtime-3.4.jar for prefix org/antlr/runtime to job jar
+550100 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/com/google/guava/guava/11.0.2/guava-11.0.2.jar for prefix com/google/common to job jar
+550435 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.8.8/jackson-core-asl-1.8.8.jar for prefix org/codehaus/jackson to job jar
+550476 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.8.8/jackson-mapper-asl-1.8.8.jar for prefix org/codehaus/jackson to job jar
+550695 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding jar /Users/oozie/.m2/repository/joda-time/joda-time/2.1/joda-time-2.1.jar for prefix org/joda/time to job jar
+550914 [pool-1-thread-1] DEBUG org.apache.pig.impl.util.JarManager  - Adding entry pigContext to job jar
+551276 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler  - jar file Job3912860214958865953.jar created
+551288 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.JobControlCompiler  - Setting up single store job
+551289 [pool-1-thread-1] DEBUG org.apache.pig.data.SchemaTupleFrontend  - Temporary directory for generated code created: /var/folders/cb/h1q48bvn37x0ly89m0y3dpmw0000gp/T/1423336123542-0
+551289 [pool-1-thread-1] INFO  org.apache.pig.data.SchemaTupleFrontend  - Key [pig.schematuple] is false, will not generate code.
+551289 [pool-1-thread-1] INFO  org.apache.pig.data.SchemaTupleFrontend  - Starting process to move generated code to distributed cache
+551290 [pool-1-thread-1] INFO  org.apache.pig.data.SchemaTupleFrontend  - Setting key [pig.schematuple.classes] with classes to deserialize []
+551300 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - 1 map-reduce job(s) waiting for submission.
+551301 [pool-1-thread-1] DEBUG org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - Failed to get job tracker location.
+551303 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	WAITING
+job mapred id:	null
+job message:	just initialized
+job has no depending job:	
+
+552272 [JobControl] INFO  org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil  - Total input paths to process : 1
+552272 [JobControl] INFO  org.apache.pig.backend.hadoop.executionengine.util.MapRedUtil  - Total input paths (combined) to process : 1
+553117 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - HadoopJobId: job_1423335594186_0016
+553118 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - Processing aliases A,B
+553118 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - detailed locations: M: A[3,4],B[4,4] C:  R: 
+553138 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - 0% complete
+558140 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+563155 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+568223 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+573250 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+578278 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+583317 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+588328 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+593374 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+598438 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+603485 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+608489 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+613490 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+618623 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+623647 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+628658 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+633704 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+638923 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+643944 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+648978 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+653984 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+659044 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+664069 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+669077 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+673382 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - 50% complete
+674079 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+679088 [JobControl] DEBUG org.apache.pig.backend.hadoop23.PigJobControl  - Checking state of job job name:	PigLatin:test
+job id:	job_pigexec_0
+job state:	RUNNING
+job mapred id:	job_1423335594186_0016
+job message:	just initialized
+job has no depending job:	
+
+679469 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - 100% complete
+679469 [pool-1-thread-1] INFO  org.apache.pig.tools.pigstats.SimplePigStats  - Script Statistics: 
+
+HadoopVersion	PigVersion	UserId	StartedAt	FinishedAt	Features
+2.4.0	0.12.1	oozie	2015-02-08 00:38:41	2015-02-08 00:40:51	UNKNOWN
+
+Success!
+
+Job Stats (time in seconds):
+JobId	Maps	Reduces	MaxMapTime	MinMapTIme	AvgMapTime	MedianMapTime	MaxReduceTime	MinReduceTime	AvgReduceTime	MedianReducetime	Alias	Feature	Outputs
+job_1423335594186_0016	1	0	59	59	59	59	n/a	n/a	n/a	n/a	A,B	MAP_ONLY	/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/output,
+
+Input(s):
+Successfully read 1 records (408 bytes) from: "/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/input"
+
+Output(s):
+Successfully stored 1 records (6 bytes) in: "/user/test/5ef8f710-abe2-4024-a63d-b9cdd5f9d3ad/output"
+
+Counters:
+Total records written : 1
+Total bytes written : 6
+Spillable Memory Manager spill count : 0
+Total bags proactively spilled: 0
+Total records proactively spilled: 0
+
+Job DAG:
+job_1423335594186_0016
+
+
+679537 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - Success!
+679555 [Thread-12090] DEBUG org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - Receive kill signal
+679555 [Thread-20462] DEBUG org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - Receive kill signal
+679556 [Thread-14949] DEBUG org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher  - Receive kill signal

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import java.io.IOException;
@@ -58,6 +59,7 @@ import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor.WorkflowActionQuery;
+import org.apache.oozie.util.ELUtils;
 import org.apache.oozie.util.JobUtils;
 import org.apache.oozie.util.XCallable;
 import org.apache.oozie.util.XConfiguration;
@@ -72,28 +74,31 @@ import org.jdom.Element;
  */
 public class RecoveryService implements Service {
 
-    public static final String CONF_PREFIX = Service.CONF_PREFIX + "RecoveryService.";
-    public static final String CONF_PREFIX_WF_ACTIONS = Service.CONF_PREFIX + "wf.actions.";
-    public static final String CONF_PREFIX_COORD = Service.CONF_PREFIX + "coord.";
-    public static final String CONF_PREFIX_BUNDLE = Service.CONF_PREFIX + "bundle.";
+    public static final String RECOVERY_SERVICE_CONF_PREFIX = Service.CONF_PREFIX + "RecoveryService.";
+    public static final String CONF_PREFIX_WF_ACTIONS = RECOVERY_SERVICE_CONF_PREFIX + "wf.actions.";
+    public static final String CONF_PREFIX_COORD = RECOVERY_SERVICE_CONF_PREFIX + "coord.";
+    public static final String CONF_PREFIX_BUNDLE = RECOVERY_SERVICE_CONF_PREFIX + "bundle.";
     /**
      * Time interval, in seconds, at which the recovery service will be scheduled to run.
      */
-    public static final String CONF_SERVICE_INTERVAL = CONF_PREFIX + "interval";
+    public static final String CONF_SERVICE_INTERVAL = RECOVERY_SERVICE_CONF_PREFIX + "interval";
     /**
      * The number of callables to be queued in a batch.
      */
-    public static final String CONF_CALLABLE_BATCH_SIZE = CONF_PREFIX + "callable.batch.size";
+    public static final String CONF_CALLABLE_BATCH_SIZE = RECOVERY_SERVICE_CONF_PREFIX + "callable.batch.size";
 
     /**
      * Delay for the push missing dependencies in milliseconds.
      */
-    public static final String CONF_PUSH_DEPENDENCY_INTERVAL = CONF_PREFIX + "push.dependency.interval";
+    public static final String CONF_PUSH_DEPENDENCY_INTERVAL = RECOVERY_SERVICE_CONF_PREFIX + "push.dependency.interval";
 
     /**
      * Age of actions to queue, in seconds.
      */
     public static final String CONF_WF_ACTIONS_OLDER_THAN = CONF_PREFIX_WF_ACTIONS + "older.than";
+
+    public static final String CONF_WF_ACTIONS_CREATED_TIME_INTERVAL = CONF_PREFIX_WF_ACTIONS + "created.time.interval";
+
     /**
      * Age of coordinator jobs to recover, in seconds.
      */
@@ -108,6 +113,9 @@ public class RecoveryService implements Service {
     private static final String INSTR_RECOVERED_ACTIONS_COUNTER = "actions";
     private static final String INSTR_RECOVERED_COORD_ACTIONS_COUNTER = "coord_actions";
     private static final String INSTR_RECOVERED_BUNDLE_ACTIONS_COUNTER = "bundle_actions";
+
+    public static final long ONE_DAY_MILLISCONDS = 25 * 60 * 60 * 1000;
+
 
 
     /**
@@ -183,7 +191,7 @@ public class RecoveryService implements Service {
                         log.error("CoordId is null for Bundle action " + baction.getBundleActionId());
                         continue;
                     }
-                    if (Services.get().get(JobsConcurrencyService.class).isJobIdForThisServer(baction.getCoordId())) {
+                    if (Services.get().get(JobsConcurrencyService.class).isJobIdForThisServer(baction.getBundleId())) {
                         if (baction.getStatus() == Job.Status.PREP && baction.getCoordId() == null) {
                             BundleJobBean bundleJob = null;
                             if (jpaService != null) {
@@ -194,11 +202,19 @@ public class RecoveryService implements Service {
                             List<Element> coordElems = bAppXml.getChildren("coordinator", bAppXml.getNamespace());
                             for (Element coordElem : coordElems) {
                                 Attribute name = coordElem.getAttribute("name");
-                                if (name.getValue().equals(baction.getCoordName())) {
-                                    Configuration coordConf = mergeConfig(coordElem, bundleJob);
+                                String coordName=name.getValue();
+                                Configuration coordConf = mergeConfig(coordElem, bundleJob);
+                                try {
+                                    coordName = ELUtils.resolveAppName(coordName, coordConf);
+                                }
+                                catch (Exception e) {
+                                    log.error("Error evaluating coord name " + e.getMessage(), e);
+                                    continue;
+                                }
+                                if (coordName.equals(baction.getCoordName())) {
                                     coordConf.set(OozieClient.BUNDLE_ID, baction.getBundleId());
                                     queueCallable(new CoordSubmitXCommand(coordConf,
-                                            bundleJob.getId(), name.getValue()));
+                                            bundleJob.getId(), coordName));
                                 }
                             }
                         }
@@ -228,7 +244,7 @@ public class RecoveryService implements Service {
         private void runCoordActionRecovery() {
             XLog.Info.get().clear();
             XLog log = XLog.getLog(getClass());
-            long pushMissingDepInterval = Services.get().getConf().getLong(CONF_PUSH_DEPENDENCY_INTERVAL, 200);
+            long pushMissingDepInterval = ConfigurationService.getLong(CONF_PUSH_DEPENDENCY_INTERVAL);
             long pushMissingDepDelay = pushMissingDepInterval;
             List<CoordinatorActionBean> cactions = null;
             try {
@@ -324,10 +340,14 @@ public class RecoveryService implements Service {
             XLog.Info.get().clear();
             XLog log = XLog.getLog(getClass());
             // queue command for action recovery
+
+            long createdTimeInterval = new Date().getTime() - ConfigurationService.getLong(CONF_WF_ACTIONS_CREATED_TIME_INTERVAL)
+                    * ONE_DAY_MILLISCONDS;
+
             List<WorkflowActionBean> actions = null;
             try {
                 actions = WorkflowActionQueryExecutor.getInstance().getList(WorkflowActionQuery.GET_PENDING_ACTIONS,
-                        olderThan);
+                        olderThan, createdTimeInterval);
             }
             catch (JPAExecutorException ex) {
                 log.warn("Exception while reading pending actions from storage", ex);
@@ -414,7 +434,7 @@ public class RecoveryService implements Service {
             }
             this.delay = Math.max(this.delay, delay);
             delayedCallables.add(callable);
-            if (delayedCallables.size() == Services.get().getConf().getInt(CONF_CALLABLE_BATCH_SIZE, 10)) {
+            if (delayedCallables.size() == ConfigurationService.getInt(CONF_CALLABLE_BATCH_SIZE)){
                 boolean ret = Services.get().get(CallableQueueService.class).queueSerial(delayedCallables, this.delay);
                 if (ret == false) {
                     XLog.getLog(getClass()).warn("Unable to queue the delayedCallables commands for RecoveryService. "
@@ -435,14 +455,16 @@ public class RecoveryService implements Service {
     @Override
     public void init(Services services) {
         Configuration conf = services.getConf();
-        Runnable recoveryRunnable = new RecoveryRunnable(conf.getInt(CONF_WF_ACTIONS_OLDER_THAN, 120), conf.getInt(
-                CONF_COORD_OLDER_THAN, 600),conf.getInt(CONF_BUNDLE_OLDER_THAN, 600));
+        Runnable recoveryRunnable = new RecoveryRunnable(
+                ConfigurationService.getInt(conf, CONF_WF_ACTIONS_OLDER_THAN),
+                ConfigurationService.getInt(conf, CONF_COORD_OLDER_THAN),
+                ConfigurationService.getInt(conf, CONF_BUNDLE_OLDER_THAN));
         services.get(SchedulerService.class).schedule(recoveryRunnable, 10, getRecoveryServiceInterval(conf),
                                                       SchedulerService.Unit.SEC);
     }
 
     public int getRecoveryServiceInterval(Configuration conf){
-        return conf.getInt(CONF_SERVICE_INTERVAL, 60);
+        return ConfigurationService.getInt(conf, CONF_SERVICE_INTERVAL);
     }
 
     /**
