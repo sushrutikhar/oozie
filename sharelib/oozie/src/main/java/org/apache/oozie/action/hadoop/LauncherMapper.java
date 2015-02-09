@@ -15,19 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.io.OutputStream;
-import java.io.FileOutputStream;
+import java.io.*;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.security.Permission;
@@ -55,12 +46,12 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     static final String CONF_OOZIE_ACTION_MAIN_CLASS = "oozie.launcher.action.main.class";
 
     static final String ACTION_PREFIX = "oozie.action.";
-    static final String CONF_OOZIE_ACTION_MAX_OUTPUT_DATA = ACTION_PREFIX + "max.output.data";
+    public static final String CONF_OOZIE_ACTION_MAX_OUTPUT_DATA = ACTION_PREFIX + "max.output.data";
     static final String CONF_OOZIE_ACTION_MAIN_ARG_COUNT = ACTION_PREFIX + "main.arg.count";
     static final String CONF_OOZIE_ACTION_MAIN_ARG_PREFIX = ACTION_PREFIX + "main.arg.";
     static final String CONF_OOZIE_EXTERNAL_STATS_MAX_SIZE = "oozie.external.stats.max.size";
-    static final String CONF_OOZIE_ACTION_FS_GLOB_MAX = "oozie.action.fs.glob.max";
-    static final int GLOB_MAX_DEFAULT = 1000;
+    static final String OOZIE_ACTION_CONFIG_CLASS = ACTION_PREFIX + "config.class";
+    static final String CONF_OOZIE_ACTION_FS_GLOB_MAX = ACTION_PREFIX + "fs.glob.max";
 
     static final String COUNTER_GROUP = "oozie.launcher";
     static final String COUNTER_LAUNCHER_ERROR = "oozie.launcher.error";
@@ -78,6 +69,7 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
     static final String ACTION_DATA_STATS = "stats.properties";
     static final String ACTION_DATA_NEW_ID = "newId";
     static final String ACTION_DATA_ERROR_PROPS = "error.properties";
+    public static final String HADOOP2_WORKAROUND_DISTRIBUTED_CACHE = "oozie.hadoop-2.0.2-alpha.workaround.for.distributed.cache";
     public static final String PROPAGATION_CONF_XML = "propagation-conf.xml";
 
     private void setRecoveryId(Configuration launcherConf, Path actionDir, String recoveryId) throws LauncherException {
@@ -147,22 +139,17 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
      * Pushing all important conf to child.
      */
     private void propagateConf() {
-        System.out.println(" start propagating conf");
         Configuration propagationConf = new Configuration(false);
         if (System.getProperty("oozie.action.id") != null) {
-            System.out.println("oozie.action.id");
             propagationConf.set("oozie.action.id", System.getProperty("oozie.action.id"));
         }
         if (System.getProperty("oozie.job.id") != null) {
-            System.out.println("oozie.job.id");
             propagationConf.set("oozie.job.id", System.getProperty("oozie.job.id"));
         }
         if(System.getProperty("oozie.launcher.job.id") != null) {
-            System.out.println("oozie.launcher.job.id");
             propagationConf.set("oozie.launcher.job.id", System.getProperty("oozie.launcher.job.id"));
         }
 
-        System.out.println(" filled system conf");
         Configuration actionConf = new Configuration(false);
         String actionXml = System.getProperty("oozie.action.conf.xml");
         if (actionXml == null) {
@@ -172,14 +159,14 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             throw new RuntimeException("Action Configuration XML file [" + actionXml + "] does not exist");
         }
 
+        actionConf.addResource(new Path("file:///", actionXml));
+
         if(actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS) != null) {
+            propagationConf.set("mapreduce.job.tags", actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS));
             System.out.println(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS + " " + actionConf.get(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS));
         }
 
-        actionConf.addResource(new Path("file:///", actionXml));
-
-        System.out.println(" filled tags");
-        System.out.println(" path of propagation " + new File(actionXml).getParentFile().getPath());
+        System.out.println("Path of propagation " + new File(actionXml).getParentFile().getPath());
         File propagationXml = new File(new File(actionXml).getParentFile(), PROPAGATION_CONF_XML);
         OutputStream os = null;
         try {
@@ -197,13 +184,11 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
             }
         }
         Configuration.addDefaultResource(PROPAGATION_CONF_XML);
-        System.out.println(" end propagating conf");
     }
 
     @Override
     public void map(K1 key, V1 value, OutputCollector<K2, V2> collector, Reporter reporter) throws IOException {
         try {
-            System.out.println(" calling launcher mapper's map");
             if (configFailure) {
                 throw configureFailureEx;
             }
@@ -496,6 +481,10 @@ public class LauncherMapper<K1, V1, K2, V2> implements Mapper<K1, V1, K2, V2>, R
         System.setProperty(ACTION_PREFIX + ACTION_DATA_NEW_ID, new File(ACTION_DATA_NEW_ID).getAbsolutePath());
         System.setProperty(ACTION_PREFIX + ACTION_DATA_OUTPUT_PROPS, new File(ACTION_DATA_OUTPUT_PROPS).getAbsolutePath());
         System.setProperty(ACTION_PREFIX + ACTION_DATA_ERROR_PROPS, new File(ACTION_DATA_ERROR_PROPS).getAbsolutePath());
+        String actionConfigClass = getJobConf().get(OOZIE_ACTION_CONFIG_CLASS);
+        if (actionConfigClass != null) {
+            System.setProperty(OOZIE_ACTION_CONFIG_CLASS, actionConfigClass);
+        }
     }
 
     // Method to execute the prepare actions

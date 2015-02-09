@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import java.sql.Timestamp;
@@ -43,7 +44,7 @@ public class CoordJobsCountNotForPurgeFromParentIdJPAExecutor implements JPAExec
      */
     @Override
     public String getName() {
-        return "CoordChildrenCountNotForPurgeJPAExecutor";
+        return "CoordJobsCountNotForPurgeFromParentIdJPAExecutor";
     }
 
     /* (non-Javadoc)

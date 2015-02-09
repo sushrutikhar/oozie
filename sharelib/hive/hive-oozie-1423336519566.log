@@ -1,0 +1,20 @@
+279552 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Number of reduce tasks is set to 0 since there's no reduce operator
+279584 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.mr.ExecDriver  - Using org.apache.hadoop.hive.ql.io.CombineHiveInputFormat
+279597 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Utilities  - Processing alias test
+279600 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Utilities  - Adding input file hdfs://localhost:53145/user/test/dda46042-37d3-46d0-aaec-4730730d513d/input
+279602 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Utilities  - Content Summary not cached for hdfs://localhost:53145/user/test/dda46042-37d3-46d0-aaec-4730730d513d/input
+279639 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Utilities  - Serializing MapWork via kryo
+280256 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Utilities  - No plan file found: hdfs://localhost:53145/tmp/hive-oozie/hive_2015-02-08_00-45-31_419_7152344043126583361-1/-mr-10004/3639401b-73c6-4d6f-bab6-a9d6044328c9/reduce.xml
+283610 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Starting Job = job_1423336272487_0003, Tracking URL = http://C02MCGQ9FH00.local:53165/proxy/application_1423336272487_0003/
+283610 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Kill Command = dummy/bin/hadoop job  -kill job_1423336272487_0003
+369808 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Hadoop job information for Stage-1: number of mappers: 1; number of reducers: 0
+369923 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - 2015-02-08 00:47:04,745 Stage-1 map = 0%,  reduce = 0%
+430016 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - 2015-02-08 00:48:04,851 Stage-1 map = 0%,  reduce = 0%
+454709 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - 2015-02-08 00:48:29,545 Stage-1 map = 100%,  reduce = 0%
+455849 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Ended Job = job_1423336272487_0003
+455882 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.FileSinkOperator  - Moving tmp dir: hdfs://localhost:53145/tmp/hive-oozie/hive_2015-02-08_00-45-31_419_7152344043126583361-1/_tmp.-ext-10002 to: hdfs://localhost:53145/tmp/hive-oozie/hive_2015-02-08_00-45-31_419_7152344043126583361-1/-ext-10002
+455894 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Stage-3 is selected by condition resolver.
+455895 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Stage-2 is filtered out by condition resolver.
+455895 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Stage-4 is filtered out by condition resolver.
+455897 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Moving data to: hdfs://localhost:53145/tmp/hive-oozie/hive_2015-02-08_00-45-31_419_7152344043126583361-1/-ext-10000 from hdfs://localhost:53145/tmp/hive-oozie/hive_2015-02-08_00-45-31_419_7152344043126583361-1/-ext-10002
+455911 [pool-1-thread-1] INFO  org.apache.hadoop.hive.ql.exec.Task  - Moving data to: /user/test/dda46042-37d3-46d0-aaec-4730730d513d/output from hdfs://localhost:53145/tmp/hive-oozie/hive_2015-02-08_00-45-31_419_7152344043126583361-1/-ext-10000

@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import javax.persistence.EntityManager;
@@ -36,7 +37,7 @@ public class CoordJobGetActionRunningCountForRangeJPAExecutor implements JPAExec
 
     @Override
     public String getName() {
-        return "CoordJobGetActionIdsForDateRangeJPAExecutor";
+        return "CoordJobGetActionRunningCountForRangeJPAExecutor";
     }
 
     @Override

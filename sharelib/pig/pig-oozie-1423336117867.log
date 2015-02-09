@@ -1,0 +1,83 @@
+2015-02-08 00:38:37,907 [pool-1-thread-1] INFO  org.apache.pig.Main  - Apache Pig version 0.12.1 (r1585011) compiled Apr 07 2014, 12:18:29
+2015-02-08 00:38:37,907 [pool-1-thread-1] INFO  org.apache.pig.Main  - Logging error messages to: /Users/oozie/OOZIE-2129/sharelib/pig/pig-1423336117867.log
+2015-02-08 00:38:37,925 [pool-1-thread-1] INFO  org.apache.pig.impl.util.Utils  - Default bootup file /Users/oozie/.pigbootup not found
+2015-02-08 00:38:37,960 [pool-1-thread-1] INFO  org.apache.hadoop.conf.Configuration.deprecation  - fs.default.name is deprecated. Instead, use fs.defaultFS
+2015-02-08 00:38:37,960 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.HExecutionEngine  - Connecting to hadoop file system at: hdfs://localhost:64455
+2015-02-08 00:38:37,961 [pool-1-thread-1] INFO  org.apache.pig.backend.hadoop.executionengine.HExecutionEngine  - Connecting to map-reduce job tracker at: test
+2015-02-08 00:38:37,967 [IPC Server handler 8 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test	dst=null	perm=null
+2015-02-08 00:38:37,968 [IPC Server handler 7 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test	dst=null	perm=null
+2015-02-08 00:38:37,970 [IPC Server handler 1 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input	dst=null	perm=null
+2015-02-08 00:38:37,971 [IPC Server handler 0 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input	dst=null	perm=null
+2015-02-08 00:38:37,972 [IPC Server handler 4 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input/.pig_schema	dst=null	perm=null
+2015-02-08 00:38:37,972 [IPC Server handler 2 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input/.pig_schema	dst=null	perm=null
+2015-02-08 00:38:37,974 [IPC Server handler 5 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test	dst=null	perm=null
+2015-02-08 00:38:37,975 [IPC Server handler 9 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test	dst=null	perm=null
+2015-02-08 00:38:37,975 [pool-1-thread-1] INFO  org.apache.pig.tools.pigstats.ScriptState  - Pig features used in the script: UNKNOWN
+2015-02-08 00:38:37,976 [pool-1-thread-1] INFO  org.apache.pig.newplan.logical.optimizer.LogicalPlanOptimizer  - {RULES_ENABLED=[AddForEach, ColumnMapKeyPrune, GroupByConstParallelSetter, LimitOptimizer, LoadTypeCastInserter, MergeFilter, MergeForEach, NewPartitionFilterOptimizer, PartitionFilterOptimizer, PushDownForEachFlatten, PushUpFilter, SplitFilter, StreamTypeCastInserter], RULES_DISABLED=[FilterLogicExpressionSimplifier]}
+2015-02-08 00:38:37,977 [IPC Server handler 6 on 64455] INFO  org.apache.hadoop.hdfs.server.namenode.FSNamesystem.audit  - allowed=true	ugi=test (auth:PROXY) via oozie (auth:SIMPLE)	ip=/127.0.0.1	cmd=getfileinfo	src=/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input	dst=null	perm=null
+2015-02-08 00:38:37,979 [Thread-87] INFO  org.apache.hadoop.hdfs.server.datanode.BlockPoolSliceScanner  - Verification succeeded for BP-1642931231-192.168.1.2-1423335575813:blk_1073743660_2836
+2015-02-08 00:38:37,981 [pool-1-thread-1] ERROR org.apache.pig.tools.grunt.Grunt  - ERROR 6000: 
+<file /Users/oozie/OOZIE-2129/sharelib/pig/target/test-data/oozietests/org.apache.oozie.action.hadoop.TestPigMain/testPig_withNullExternalID/script.pig, line 2, column 0> Output Location Validation Failed for: '/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input More info to follow:
+Output directory hdfs://localhost:64455/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input already exists
+2015-02-08 00:38:37,981 [pool-1-thread-1] ERROR org.apache.pig.tools.grunt.Grunt  - org.apache.pig.impl.plan.VisitorException: ERROR 6000: 
+<file /Users/oozie/OOZIE-2129/sharelib/pig/target/test-data/oozietests/org.apache.oozie.action.hadoop.TestPigMain/testPig_withNullExternalID/script.pig, line 2, column 0> Output Location Validation Failed for: '/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input More info to follow:
+Output directory hdfs://localhost:64455/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input already exists
+	at org.apache.pig.newplan.logical.rules.InputOutputFileValidator$InputOutputFileVisitor.visit(InputOutputFileValidator.java:95)
+	at org.apache.pig.newplan.logical.relational.LOStore.accept(LOStore.java:66)
+	at org.apache.pig.newplan.DepthFirstWalker.depthFirst(DepthFirstWalker.java:64)
+	at org.apache.pig.newplan.DepthFirstWalker.depthFirst(DepthFirstWalker.java:66)
+	at org.apache.pig.newplan.DepthFirstWalker.walk(DepthFirstWalker.java:53)
+	at org.apache.pig.newplan.PlanVisitor.visit(PlanVisitor.java:52)
+	at org.apache.pig.newplan.logical.rules.InputOutputFileValidator.validate(InputOutputFileValidator.java:45)
+	at org.apache.pig.backend.hadoop.executionengine.HExecutionEngine.compile(HExecutionEngine.java:303)
+	at org.apache.pig.PigServer.compilePp(PigServer.java:1382)
+	at org.apache.pig.PigServer.executeCompiledLogicalPlan(PigServer.java:1307)
+	at org.apache.pig.PigServer.execute(PigServer.java:1299)
+	at org.apache.pig.PigServer.executeBatch(PigServer.java:377)
+	at org.apache.pig.PigServer.executeBatch(PigServer.java:355)
+	at org.apache.pig.tools.grunt.GruntParser.executeBatch(GruntParser.java:140)
+	at org.apache.pig.tools.grunt.GruntParser.parseStopOnError(GruntParser.java:202)
+	at org.apache.pig.tools.grunt.GruntParser.parseStopOnError(GruntParser.java:173)
+	at org.apache.pig.tools.grunt.Grunt.exec(Grunt.java:84)
+	at org.apache.pig.Main.run(Main.java:478)
+	at org.apache.pig.PigRunner.run(PigRunner.java:49)
+	at org.apache.oozie.action.hadoop.PigMain.runPigJob(PigMain.java:289)
+	at org.apache.oozie.action.hadoop.PigMain.run(PigMain.java:229)
+	at org.apache.oozie.action.hadoop.LauncherMain.run(LauncherMain.java:45)
+	at org.apache.oozie.action.hadoop.PigMain.main(PigMain.java:76)
+	at org.apache.oozie.action.hadoop.TestPigMain.call(TestPigMain.java:119)
+	at org.apache.oozie.action.hadoop.TestPigMain.call(TestPigMain.java:38)
+	at org.apache.oozie.action.hadoop.MainTestCase$1.run(MainTestCase.java:33)
+	at org.apache.oozie.action.hadoop.MainTestCase$1.run(MainTestCase.java:31)
+	at java.security.AccessController.doPrivileged(Native Method)
+	at javax.security.auth.Subject.doAs(Subject.java:394)
+	at org.apache.hadoop.security.UserGroupInformation.doAs(UserGroupInformation.java:1548)
+	at org.apache.oozie.action.hadoop.MainTestCase.execute(MainTestCase.java:31)
+	at org.apache.oozie.action.hadoop.PigTestCase.testPig_withNullExternalID(PigTestCase.java:106)
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:39)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:25)
+	at java.lang.reflect.Method.invoke(Method.java:597)
+	at junit.framework.TestCase.runTest(TestCase.java:168)
+	at junit.framework.TestCase.runBare(TestCase.java:134)
+	at junit.framework.TestResult$1.protect(TestResult.java:110)
+	at junit.framework.TestResult.runProtected(TestResult.java:128)
+	at junit.framework.TestResult.run(TestResult.java:113)
+	at junit.framework.TestCase.run(TestCase.java:124)
+	at junit.framework.TestSuite.runTest(TestSuite.java:243)
+	at junit.framework.TestSuite.run(TestSuite.java:238)
+	at org.junit.internal.runners.JUnit38ClassRunner.run(JUnit38ClassRunner.java:83)
+	at org.junit.runners.Suite.runChild(Suite.java:128)
+	at org.junit.runners.Suite.runChild(Suite.java:24)
+	at org.junit.runners.ParentRunner$3.run(ParentRunner.java:231)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:439)
+	at java.util.concurrent.FutureTask$Sync.innerRun(FutureTask.java:303)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:138)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.runTask(ThreadPoolExecutor.java:895)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:918)
+	at java.lang.Thread.run(Thread.java:695)
+Caused by: org.apache.hadoop.mapred.FileAlreadyExistsException: Output directory hdfs://localhost:64455/user/test/a76c528a-fbe5-4da7-97fa-d20c9407b7de/input already exists
+	at org.apache.hadoop.mapreduce.lib.output.FileOutputFormat.checkOutputSpecs(FileOutputFormat.java:146)
+	at org.apache.pig.newplan.logical.rules.InputOutputFileValidator$InputOutputFileVisitor.visit(InputOutputFileValidator.java:80)
+	... 53 more
+

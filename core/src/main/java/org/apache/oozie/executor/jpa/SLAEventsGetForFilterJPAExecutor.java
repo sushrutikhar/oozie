@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import java.util.HashMap;
@@ -50,7 +51,7 @@ public class SLAEventsGetForFilterJPAExecutor implements JPAExecutor<List<SLAEve
 
     @Override
     public String getName() {
-        return "SLAEventsGetForJobIdJPAExecutor";
+        return "SLAEventsGetForFilterJPAExecutor";
     }
 
     @Override

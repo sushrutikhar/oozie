@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.BufferedReader;
@@ -153,16 +154,23 @@ public class LauncherMapperHelper {
         fs.mkdirs(actionDir);
 
         OutputStream os = fs.create(new Path(actionDir, LauncherMapper.ACTION_CONF_XML));
-        actionConf.writeXml(os);
-        os.close();
+        try {
+            actionConf.writeXml(os);
+        } finally {
+            IOUtils.closeSafely(os);
+        }
+
         launcherConf.setInputFormat(OozieLauncherInputFormat.class);
         launcherConf.set("mapred.output.dir", new Path(actionDir, "output").toString());
     }
 
     public static void setupYarnRestartHandling(JobConf launcherJobConf, Configuration actionConf, String launcherTag)
             throws NoSuchAlgorithmException {
+        launcherJobConf.setLong("oozie.job.launch.time", System.currentTimeMillis());
         // Tags are limited to 100 chars so we need to hash them to make sure (the actionId otherwise doesn't have a max length)
         String tag = getTag(launcherTag);
+        // keeping the child.mapreduce.job.tags instead of mapreduce.job.tags to avoid killing launcher itself.
+        // mapreduce.job.tags should only go to child job launch by launcher.
         actionConf.set(LauncherMain.CHILD_MAPREDUCE_JOB_TAGS, tag);
     }
 

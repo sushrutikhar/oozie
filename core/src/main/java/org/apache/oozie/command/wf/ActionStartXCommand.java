@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.wf;
 
 import java.util.ArrayList;
@@ -92,6 +93,11 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
     }
 
     @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(actionId);
+    }
+
+    @Override
     protected boolean isLockRequired() {
         return true;
     }
@@ -110,8 +116,8 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                     this.wfJob = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQuery.GET_WORKFLOW, jobId);
                 }
                 this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, actionId);
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
+                LogUtils.setLogInfo( wfJob);
+                LogUtils.setLogInfo(wfAction);
             }
             else {
                 throw new CommandException(ErrorCode.E0610);
@@ -226,7 +232,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 Instrumentation.Cron cron = new Instrumentation.Cron();
                 cron.start();
                 context.setStartTime();
-                                /*
+                                                /*
                 Creating and forwarding the tag, It will be useful during repeat attempts of Launcher, to ensure only
                 one child job is running. Tag is formed as follows:
                 For workflow job, tag = action-id
@@ -269,11 +275,11 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                         wfAction.setErrorInfo(START_DATA_MISSING, "Execution Started, but Start Data Missing from Action");
                         failJob(context);
                     } else {
-                        queue(new NotificationXCommand(wfJob, wfAction));
+                        queue(new WorkflowNotificationXCommand(wfJob, wfAction));
                     }
                 }
 
-                LOG.warn(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action status=" + wfAction.getStatusStr());
+                LOG.info(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action status=" + wfAction.getStatusStr());
 
                 updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_START, wfAction));
                 wfJob.setLastModifiedTime(new Date());
@@ -284,7 +290,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 if(slaEvent != null) {
                     insertList.add(slaEvent);
                 }
-                LOG.warn(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action updated in DB!");
+                LOG.info(XLog.STD, "[***" + wfAction.getId() + "***]" + "Action updated in DB!");
             }
         }
         catch (ActionExecutorException ex) {

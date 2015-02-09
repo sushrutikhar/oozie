@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.service;
 
 import java.io.InputStreamReader;
@@ -68,7 +69,7 @@ public class TestHAShareLibService extends ZKXTestCase {
         Date time = new Date(System.currentTimeMillis());
 
         Path basePath = new Path(Services.get().getConf().get(WorkflowAppService.SYSTEM_LIB_PATH));
-        Path libpath = new Path(basePath, ShareLibService.SHARED_LIB_PREFIX + ShareLibService.dateFormat.format(time));
+        Path libpath = new Path(basePath, ShareLibService.SHARE_LIB_PREFIX + ShareLibService.dateFormat.format(time));
         fs.mkdirs(libpath);
 
         Path pigPath = new Path(libpath.toString() + Path.SEPARATOR + "pig");

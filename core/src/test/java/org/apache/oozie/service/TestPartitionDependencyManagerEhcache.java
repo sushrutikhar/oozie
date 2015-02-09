@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import java.util.Collection;
@@ -22,7 +23,6 @@ import java.util.Collection;
 import org.apache.oozie.dependency.hcat.EhcacheHCatDependencyCache;
 import org.apache.oozie.util.HCatURI;
 import org.apache.oozie.util.XLog;
-import org.junit.Ignore;
 import org.junit.Test;
 
 public class TestPartitionDependencyManagerEhcache extends TestPartitionDependencyManagerService {
@@ -47,16 +47,16 @@ public class TestPartitionDependencyManagerEhcache extends TestPartitionDependen
         super.testPartitionDependency();
     }
 
-    @Ignore
+    @Override
     @Test
-    public void _testMemoryUsageAndSpeed() throws Exception {
+    public void testMemoryUsageAndSpeed() throws Exception {
         // use all small case. Configured insrc/test/resources/ehcache.xml
         setupServices("testnospilltodisk");
         assertSpeedAndMemory(60000, 4500, 2000, 45000000, 40000000);
     }
 
     @Test
-    public void _testMemoryUsageAndSpeedOverflowToDisk() throws Exception {
+    public void testMemoryUsageAndSpeedOverflowToDisk() throws Exception {
         setupServices("testspilltodisk"); // maxElementsInMemory="20000". 2/3 on disk
         // Insert and retrieve are between 15-30 seconds
         // When run individually memIncreaseAfterInsert is < 45MB. But running with
@@ -132,5 +132,4 @@ public class TestPartitionDependencyManagerEhcache extends TestPartitionDependen
             assertTrue(dep.toURIString() + " is missing in cache", waitingActions.contains(actionID));
         }
     }
-
 }

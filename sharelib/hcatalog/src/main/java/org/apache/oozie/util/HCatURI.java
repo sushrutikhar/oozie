@@ -15,11 +15,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.util;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -80,7 +81,7 @@ public class HCatURI {
             throw new URISyntaxException(uri.toString(), "Partition details are missing");
         }
 
-        partitions = new HashMap<String, String>();
+        partitions = new LinkedHashMap<String, String>();
         String[] parts = partRaw.split(PARTITION_SEPARATOR);
         for (String part : parts) {
             if (part == null || part.length() == 0) {
