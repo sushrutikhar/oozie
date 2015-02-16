@@ -101,7 +101,6 @@
          <openjpa.version>2.2.2</openjpa.version>
          <xerces.version>2.10.0</xerces.version>
          <curator.version>2.5.0</curator.version>
-        <oozie.dependencies.scope>provided</oozie.dependencies.scope>
     </properties>
 
     <modules>
@@ -1480,6 +1479,12 @@
                 <groupId>joda-time</groupId>
                 <artifactId>joda-time</artifactId>
                 <version>2.1</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.apache.falcon</groupId>
+                <artifactId>falcon-oozie-el-extension</artifactId>
+                <version>0.6-incubating</version>
             </dependency>
 
         </dependencies>
