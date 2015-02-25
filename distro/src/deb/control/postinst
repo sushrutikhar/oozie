@@ -1,5 +1,6 @@
+#!/bin/bash
 set -e
-echo ${OOZIE_SERVER_DIR}
+echo $OOZIE_SERVER_DIR
 echo ${OOZIE_BASE_DIR}
 echo ${EXTJS_URL}
 echo ${NAMENODE}
