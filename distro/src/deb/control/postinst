@@ -12,149 +12,149 @@ echo ${ZOOKEEPER_CLIENT}
 echo ${DEPLOYMENT_MODE}
 flag=false
 if [ "${OOZIE_SERVER_DIR}" == "" ]; then
-    echo "OOZIE_SERVER_DIR NOT SET"
-    flag=true
+echo "OOZIE_SERVER_DIR NOT SET"
+flag=true
 fi
 
 if [ "${OOZIE_BASE_DIR}" == "" ]; then
-    echo "OOZIE_BASE_DIR NOT SET"
-    flag=true
+echo "OOZIE_BASE_DIR NOT SET"
+flag=true
 fi
 
 if [ "${EXTJS_URL}" == "" ]; then
-    echo "EXTJS_URL NOT SET"
-    flag=true
+echo "EXTJS_URL NOT SET"
+flag=true
 fi
 
 if [ "${NAMENODE}" == "" ]; then
-    echo "NAMENODE NOT SET"
-    flag=true
+echo "NAMENODE NOT SET"
+flag=true
 fi
 
-if [ "${HADOOP_CONF}" == "" ]; then
-    echo "HADOOP_CONF NOT SET"
-    flag=true
+if [[ "${HADOOP_CONF}" == "" ]]; then
+echo "HADOOP_CONF NOT SET"
+flag=true
 fi
 
 if [ "${HADOOP_CLIENT}" == "" ]; then
-    echo "HADOOP_CLIENT NOT SET"
-    flag=true
+echo "HADOOP_CLIENT NOT SET"
+flag=true
 fi
 
 if [ "${HADOOP_HDFS_CLIENT}" == "" ]; then
-    echo "HADOOP_HDFS_CLIENT NOT SET"
-    flag=true
+echo "HADOOP_HDFS_CLIENT NOT SET"
+flag=true
 fi
 
 if [ "${HADOOP_MAPREDUCE_CLIENT}" == "" ]; then
-    echo "HADOOP_MAPREDUCE_CLIENT NOT SET"
-    flag=true
+echo "HADOOP_MAPREDUCE_CLIENT NOT SET"
+flag=true
 fi
 
 if [ "${HADOOP_YARN_CLIENT}" == "" ]; then
-    echo "HADOOP_YARN_CLIENT NOT SET"
-    flag=true
+echo "HADOOP_YARN_CLIENT NOT SET"
+flag=true
 fi
 
 if [ "${ZOOKEEPER_CLIENT}" == "" ]; then
-    echo "ZOOKEEPER_CLIENT NOT SET"
-    flag=true
+echo "ZOOKEEPER_CLIENT NOT SET"
+flag=true
 fi
 
 if [ "$flag" = true ];then
-    exit 1
+exit 1
 fi
 
 if [[ "${DEPLOYMENT_MODE}" == "FULL" || "${DEPLOYMENT_MODE}" == "WITHOUT_SHARELIB" || "${DEPLOYMENT_MODE}" == "ONLY_SHARELIB" ]]; then
-    echo "DEPLOYMENT_MODE IS VALID"
+echo "DEPLOYMENT_MODE IS VALID"
 else
-    echo "DEPLOYMENT_MODE IS NOT VALID"
-    exit 1
+echo "DEPLOYMENT_MODE IS NOT VALID"
+exit 1
 fi
 
 sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozied.sh stop || true
 
 if [ "${DEPLOYMENT_MODE}" == "ONLY_SHARELIB" ]; then
-    cd ${OOZIE_BASE_DIR}/
+cd ${OOZIE_BASE_DIR}/
 
-    BASE=oozie-[[version]]
-    OOZIE_BASE=$(echo "$(echo $BASE| tr '~' '-')")
-    OOZIE_SHARELIB=${OOZIE_BASE}_SHARELIB
+BASE=oozie-[[version]]
+OOZIE_BASE=$(echo "$(echo $BASE| tr '~' '-')")
+OOZIE_SHARELIB=${OOZIE_BASE}_SHARELIB
 
-    DISTRO=$(ls /deb|grep distro|grep tar.gz)
-    sudo mkdir ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB
-    sudo tar -xzvf /deb/$DISTRO -C ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB
+DISTRO=$(ls /deb|grep distro|grep tar.gz)
+sudo mkdir ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB
+sudo tar -xzvf /deb/$DISTRO -C ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB
 
-    cd ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE
-    SHARE=$(ls | grep sharelib | grep tar.gz)
-    sudo tar -zxvf $SHARE
+cd ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE
+SHARE=$(ls | grep sharelib | grep tar.gz)
+sudo tar -zxvf $SHARE
 
-    sudo mkdir -p ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/pig/
-    sudo mkdir -p ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/oozie/
-    sudo mkdir -p ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/hive/
-    cd ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE
+sudo mkdir -p ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/pig/
+sudo mkdir -p ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/oozie/
+sudo mkdir -p ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/hive/
+cd ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE
 
-    sudo cp ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/share/lib/oozie/* ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/oozie/
-    sudo cp ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/share/lib/pig/* ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/pig/
-    sudo cp ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/share/lib/hive/* ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/hive/
+sudo cp ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/share/lib/oozie/* ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/oozie/
+ sudo cp ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/share/lib/pig/* ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/pig/
+ sudo cp ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/share/lib/hive/* ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib/lib/hive/
 
-    sudo chown -R oozie:oozie ${OOZIE_SERVER_DIR}/
+ sudo chown -R oozie:oozie ${OOZIE_SERVER_DIR}/
 
-    sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozie-setup.sh sharelib create -fs ${NAMENODE} -locallib ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib
-    sudo mv ${OOZIE_BASE_DIR}/${OOZIE_SHARELIB} ${OOZIE_BASE_DIR}/${OOZIE_SHARELIB}.`date +"%Y%m%d%H%M%S"`
-else
-    cd ${OOZIE_BASE_DIR}/
-    sudo mv ${OOZIE_SERVER_DIR} ${OOZIE_SERVER_DIR}.`date +"%Y%m%d%H%M%S"` || true
-    DISTRO=$(ls /deb|grep distro|grep tar.gz)
-    sudo tar -xzvf /deb/$DISTRO
+ sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozie-setup.sh sharelib create -fs ${NAMENODE} -locallib ${OOZIE_BASE_DIR}/$OOZIE_SHARELIB/$OOZIE_BASE/temp_sharelib
+ sudo mv ${OOZIE_BASE_DIR}/${OOZIE_SHARELIB} ${OOZIE_BASE_DIR}/${OOZIE_SHARELIB}.`date +"%Y%m%d%H%M%S"`
+ else
+ cd ${OOZIE_BASE_DIR}/
+ sudo mv ${OOZIE_SERVER_DIR} ${OOZIE_SERVER_DIR}.`date +"%Y%m%d%H%M%S"` || true
+ DISTRO=$(ls /deb|grep distro|grep tar.gz)
+ sudo tar -xzvf /deb/$DISTRO
 
-    BASE=oozie-[[version]]
-    OOZIE_BASE=$(echo "$(echo $SERVER| tr '~' '-')")
-    sudo mv ${OOZIE_BASE_DIR}/$OOZIE_BASE ${OOZIE_SERVER_DIR}
+ BASE=oozie-[[version]]
+ OOZIE_BASE=$(echo "$(echo $BASE| tr '~' '-')")
+ sudo mv ${OOZIE_BASE_DIR}/$OOZIE_BASE ${OOZIE_SERVER_DIR}
 
-    cd ${OOZIE_SERVER_DIR}
-    sudo mkdir ${OOZIE_SERVER_DIR}/libext
-    cd ${OOZIE_SERVER_DIR}/libext
-    sudo cp ${HADOOP_CLIENT}/*.jar .
-    sudo cp ${HADOOP_CLIENT}/lib/* .
-    sudo cp ${HADOOP_HDFS_CLIENT}/*.jar .
-    sudo cp ${HADOOP_HDFS_CLIENT}/lib/* .
-    sudo cp ${HADOOP_MAPREDUCE_CLIENT}/*.jar .
-    sudo cp ${HADOOP_MAPREDUCE_CLIENT}/lib/* .
-    sudo cp ${HADOOP_YARN_CLIENT}/*.jar .
-    sudo cp ${HADOOP_YARN_CLIENT}/lib/* .
-    sudo cp ${ZOOKEEPER_CLIENT}/zookeeper.jar .
+ cd ${OOZIE_SERVER_DIR}
+ sudo mkdir ${OOZIE_SERVER_DIR}/libext
+ cd ${OOZIE_SERVER_DIR}/libext
+ sudo cp ${HADOOP_CLIENT}/*.jar . || true
+ sudo cp ${HADOOP_CLIENT}/lib/* . || true
+ sudo cp ${HADOOP_HDFS_CLIENT}/*.jar . || true
+ sudo cp ${HADOOP_HDFS_CLIENT}/lib/* . || true
+ sudo cp ${HADOOP_MAPREDUCE_CLIENT}/*.jar . || true
+ sudo cp ${HADOOP_MAPREDUCE_CLIENT}/lib/* . || true
+ sudo cp ${HADOOP_YARN_CLIENT}/*.jar . || true
+ sudo cp ${HADOOP_YARN_CLIENT}/lib/* . || true
+ sudo cp ${ZOOKEEPER_CLIENT}/zookeeper.jar . || true
 
-    #sudo wget ${EXTJS_URL}
+ #sudo wget ${EXTJS_URL}
 
-    cd ${OOZIE_SERVER_DIR}
-    SHARE=$(ls | grep sharelib | grep tar.gz)
-    sudo tar -zxvf $SHARE
-    sudo cp ${OOZIE_SERVER_DIR}/share/lib/pig/guava-11.0.2.jar ${OOZIE_SERVER_DIR}/share/lib/hcatalog/
+ cd ${OOZIE_SERVER_DIR}
+ SHARE=$(ls | grep sharelib | grep tar.gz)
+ sudo tar -zxvf $SHARE
+ sudo cp ${OOZIE_SERVER_DIR}/share/lib/pig/guava-11.0.2.jar ${OOZIE_SERVER_DIR}/share/lib/hcatalog/
 
-    sudo rm -r ${OOZIE_SERVER_DIR}/conf/hadoop-conf || true
-    cd ${OOZIE_SERVER_DIR}/conf
-    sudo ln -s ${HADOOP_CONF} hadoop-conf
+ sudo rm -r ${OOZIE_SERVER_DIR}/conf/hadoop-conf || true
+ cd ${OOZIE_SERVER_DIR}/conf
+ sudo ln -s ${HADOOP_CONF} hadoop-conf
 
-    sudo mkdir -p ${OOZIE_SERVER_DIR}/temp_sharelib/lib/pig/
-    sudo mkdir -p ${OOZIE_SERVER_DIR}/temp_sharelib/lib/oozie/
-    sudo mkdir -p ${OOZIE_SERVER_DIR}/temp_sharelib/lib/hive/
-    cd ${OOZIE_SERVER_DIR}
+ sudo mkdir -p ${OOZIE_SERVER_DIR}/temp_sharelib/lib/pig/
+ sudo mkdir -p ${OOZIE_SERVER_DIR}/temp_sharelib/lib/oozie/
+ sudo mkdir -p ${OOZIE_SERVER_DIR}/temp_sharelib/lib/hive/
+ cd ${OOZIE_SERVER_DIR}
 
-    sudo cp ${OOZIE_SERVER_DIR}/share/lib/oozie/* ${OOZIE_SERVER_DIR}/temp_sharelib/lib/oozie/
-    sudo cp ${OOZIE_SERVER_DIR}/share/lib/pig/* ${OOZIE_SERVER_DIR}/temp_sharelib/lib/pig/
-    sudo cp ${OOZIE_SERVER_DIR}/share/lib/hive/* ${OOZIE_SERVER_DIR}/temp_sharelib/lib/hive/
+ sudo cp ${OOZIE_SERVER_DIR}/share/lib/oozie/* ${OOZIE_SERVER_DIR}/temp_sharelib/lib/oozie/
+ sudo cp ${OOZIE_SERVER_DIR}/share/lib/pig/* ${OOZIE_SERVER_DIR}/temp_sharelib/lib/pig/
+ sudo cp ${OOZIE_SERVER_DIR}/share/lib/hive/* ${OOZIE_SERVER_DIR}/temp_sharelib/lib/hive/
 
-    sudo cp ${OOZIE_SERVER_DIR}/share/lib/hcatalog/*.jar ${OOZIE_SERVER_DIR}/libext/
-    sudo cp ${OOZIE_SERVER_DIR}/share/lib/pig/*.jar ${OOZIE_SERVER_DIR}/libext/
+ sudo cp ${OOZIE_SERVER_DIR}/share/lib/hcatalog/*.jar ${OOZIE_SERVER_DIR}/libext/
+ sudo cp ${OOZIE_SERVER_DIR}/share/lib/pig/*.jar ${OOZIE_SERVER_DIR}/libext/
 
-    sudo chown -R oozie:oozie ${OOZIE_SERVER_DIR}/
+ sudo chown -R oozie:oozie ${OOZIE_SERVER_DIR}/
 
-    sudo -u oozie ${OOZIE_SERVER_DIR}/bin/ooziedb.sh create -sqlfile ${OOZIE_SERVER_DIR}/oozie.sql -run
-    sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozie-setup.sh prepare-war
+ sudo -u oozie ${OOZIE_SERVER_DIR}/bin/ooziedb.sh create -sqlfile ${OOZIE_SERVER_DIR}/oozie.sql -run
+ sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozie-setup.sh prepare-war
 
-    if [ "${DEPLOYMENT_MODE}" == "FULL" ]; then
-        sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozie-setup.sh sharelib create -fs ${NAMENODE} -locallib ${OOZIE_SERVER_DIR}/temp_sharelib
-    fi
-fi
-sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozied.sh start
+ if [ "${DEPLOYMENT_MODE}" == "FULL" ]; then
+ sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozie-setup.sh sharelib create -fs ${NAMENODE} -locallib ${OOZIE_SERVER_DIR}/temp_sharelib
+ fi
+ fi
+ sudo -u oozie ${OOZIE_SERVER_DIR}/bin/oozied.sh start
