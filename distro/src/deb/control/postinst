@@ -198,5 +198,5 @@ else
         sudo -u oozie $OOZIE_CURRENT/bin/oozie-setup.sh sharelib create -fs $NAMENODE -locallib $OOZIE_CURRENT/temp_sharelib
     fi
     sudo -u oozie $OOZIE_CURRENT/bin/oozied.sh start
-    echo "In case of rollup please move the existing $OOZIE_CURRENT directory to some backup and move $OOZIE_CURRENT_TEMP to $OOZIE_CURRENT...Ignore this if installing oozie for the first time"
+    echo "In case of rollback please move the existing $OOZIE_CURRENT directory to some backup and move $OOZIE_CURRENT_TEMP to $OOZIE_CURRENT...Ignore this if installing oozie for the first time"
 fi
