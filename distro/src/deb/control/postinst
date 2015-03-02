@@ -38,11 +38,6 @@ if [ "$OOZIE_BASE" == "" ]; then
     flag=true
 fi
 
-if [ "$EXTJS_URL" == "" ]; then
-    echo "EXTJS_URL NOT SET"
-    flag=true
-fi
-
 if [ "$NAMENODE" == "" ]; then
     echo "NAMENODE NOT SET"
     flag=true
@@ -169,7 +164,7 @@ else
     sudo cp $HADOOP_YARN_CLIENT/lib/*.jar . || true
     sudo cp $ZOOKEEPER_CLIENT/zookeeper.jar . || true
 
-    #sudo wget $EXTJS_URL
+    #sudo wget $EXTJS_URL || true
 
     cd $OOZIE_CURRENT
     SHARE=$(ls | grep sharelib | grep tar.gz)
