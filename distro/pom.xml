@@ -113,7 +113,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <executions>
                     <execution>
-                        <id>assembly</id>
+                        <id>build-tar</id>
                         <goals>
                             <goal>single</goal>
                         </goals>
