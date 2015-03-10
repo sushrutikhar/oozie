@@ -166,7 +166,9 @@ else
 
     sudo rm jasper-compiler*.jar jsp-api*.jar servlet-api*.jar || true
 
-    #sudo wget $EXTJS_URL || true
+    if [ "$EXTJS_URL" != "" ]; then
+        sudo wget $EXTJS_URL || true
+    fi
 
     cd $OOZIE_CURRENT
     SHARE=$(ls | grep sharelib | grep tar.gz)
