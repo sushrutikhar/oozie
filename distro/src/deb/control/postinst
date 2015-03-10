@@ -164,6 +164,8 @@ else
     sudo cp $HADOOP_YARN_CLIENT/lib/*.jar . || true
     sudo cp $ZOOKEEPER_CLIENT/zookeeper.jar . || true
 
+    sudo rm jasper-compiler*.jar jsp-api*.jar servlet-api*.jar || true
+
     #sudo wget $EXTJS_URL || true
 
     cd $OOZIE_CURRENT
