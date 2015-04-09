@@ -1,21 +1,10 @@
 #!/bin/bash
 set -e
-OOZIE_CURRENT=$OOZIE_CURRENT
-OOZIE_BASE_DIR=$OOZIE_BASE
-EXTJS_URL=$EXTJS_URL
-NAMENODE=$NAMENODE
-HADOOP_CONF=$HADOOP_CONF
-HADOOP_CLIENT=$HADOOP_CLIENT
-HADOOP_HDFS_CLIENT=$HADOOP_HDFS_CLIENT
-HADOOP_MAPREDUCE_CLIENT=$HADOOP_MAPREDUCE_CLIENT
-HADOOP_YARN_CLIENT=$HADOOP_YARN_CLIENT
-ZOOKEEPER_CLIENT=$ZOOKEEPER_CLIENT
-DEPLOYMENT_MODE=$DEPLOYMENT_MODE
-DB_FLAG=$DB_FLAG
 
 echo "OOZIE_CURRENT=$OOZIE_CURRENT"
 echo "OOZIE_BASE=$OOZIE_BASE"
 echo "EXTJS_URL=$EXTJS_URL"
+echo "MYSQL_CONNECTOR_JAR=$MYSQL_CONNECTOR_JAR"
 echo "NAMENODE=$NAMENODE"
 echo "HADOOP_CONF=$HADOOP_CONF"
 echo "HADOOP_CLIENT=$HADOOP_CLIENT"
@@ -84,7 +73,10 @@ else
     exit 1
 fi
 
-sudo -u oozie $OOZIE_CURRENT/bin/oozied.sh stop || true
+if [ -f "$OOZIE_CURRENT/oozie-server/temp/oozie.pid" ]; then
+        echo "Oozie service is already running on $OOZIE_CURRENT/oozie-server/temp/oozie.pid. Please stop the service and try the installation again."
+        exit 1
+fi
 
 if [ "$DEPLOYMENT_MODE" == "ONLY_SHARELIB" ]; then
 
@@ -132,7 +124,6 @@ if [ "$DEPLOYMENT_MODE" == "ONLY_SHARELIB" ]; then
 
     sudo -u oozie $OOZIE_CURRENT/bin/oozie-setup.sh sharelib create -fs $NAMENODE -locallib $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib
     sudo mv $OOZIE_BASE/$OOZIE_SHARELIB $OOZIE_BASE/${OOZIE_SHARELIB}.`date +"%Y%m%d%H%M%S"`
-    sudo -u oozie $OOZIE_CURRENT/bin/oozied.sh start
 
 else
 
@@ -170,6 +161,10 @@ else
         sudo wget $EXTJS_URL || true
     fi
 
+    if [ "$MYSQL_CONNECTOR_JAR" != "" ]; then
+        sudo wget $MYSQL_CONNECTOR_JAR || true
+    fi
+
     cd $OOZIE_CURRENT
     SHARE=$(ls | grep sharelib | grep tar.gz)
     sudo tar -zxvf $SHARE
@@ -203,6 +198,5 @@ else
     if [ "$DEPLOYMENT_MODE" == "FULL" ]; then
         sudo -u oozie $OOZIE_CURRENT/bin/oozie-setup.sh sharelib create -fs $NAMENODE -locallib $OOZIE_CURRENT/temp_sharelib
     fi
-    sudo -u oozie $OOZIE_CURRENT/bin/oozied.sh start
     echo "In case of rollback please move the existing $OOZIE_CURRENT directory to some backup and move $OOZIE_CURRENT_TEMP to $OOZIE_CURRENT...Ignore this if installing oozie for the first time"
 fi
