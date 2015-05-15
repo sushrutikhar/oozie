@@ -177,11 +177,13 @@ else
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/pig/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/oozie/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/hive/
+    sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/spark/
     cd $OOZIE_CURRENT
 
     sudo cp $OOZIE_CURRENT/share/lib/oozie/* $OOZIE_CURRENT/temp_sharelib/lib/oozie/
     sudo cp $OOZIE_CURRENT/share/lib/pig/* $OOZIE_CURRENT/temp_sharelib/lib/pig/
     sudo cp $OOZIE_CURRENT/share/lib/hive/* $OOZIE_CURRENT/temp_sharelib/lib/hive/
+    sudo cp $OOZIE_CURRENT/share/lib/spark/* $OOZIE_CURRENT/temp_sharelib/lib/spark/
 
     sudo cp $OOZIE_CURRENT/share/lib/hcatalog/*.jar $OOZIE_CURRENT/libext/
     sudo cp $OOZIE_CURRENT/share/lib/pig/*.jar $OOZIE_CURRENT/libext/
