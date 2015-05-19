@@ -185,6 +185,11 @@ public class Hive2Main extends LauncherMain {
             arguments.add(beelineArg);
         }
 
+        if (actionConf.get("mapreduce.job.tags")!= null ) {
+            arguments.add("--hiveconf");
+            arguments.add("mapreduce.job.tags=" + actionConf.get("mapreduce.job.tags"));
+        }
+
         System.out.println("Beeline command arguments :");
         for (String arg : arguments) {
             System.out.println("             " + arg);
