@@ -6,20 +6,27 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie;
 
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.client.WorkflowJob;
+import org.apache.oozie.command.CommandException;
+import org.apache.oozie.command.wf.ActionEndXCommand;
+import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor;
+import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
 import org.apache.oozie.service.LiteWorkflowStoreService;
+import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.util.XmlUtils;
 import org.apache.oozie.workflow.lite.EndNodeDef;
 import org.apache.oozie.workflow.lite.LiteWorkflowApp;
@@ -35,7 +42,7 @@ import org.apache.oozie.DagELFunctions;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
 
-public class TestDagELFunctions extends XTestCase {
+public class TestDagELFunctions extends XDataTestCase {
 
     protected void setUp() throws Exception {
         super.setUp();
@@ -119,4 +126,96 @@ public class TestDagELFunctions extends XTestCase {
         assertEquals("externalStatus", eval.evaluate("${wf:actionExternalStatus('actionName')}", String.class));
     }
 
+    // This test simulates an action that gets retried because of an Error and succeeds on one of the retries.  The lastErrorNode
+    // EL function should never be set to this node.
+    public void testLastErrorNodeWithRetrySucceed() throws Exception {
+        WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.END_RETRY, true);
+        action.setType("java");
+        action.setExternalStatus("FAILED");
+        action.setErrorInfo("JA018", "some error occurred");
+        WorkflowActionQueryExecutor.getInstance().executeUpdate(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+
+        new ActionEndXCommandIgnoreSignalException(action.getId(), action.getType()).call();
+
+        ELEvaluator eval = Services.get().get(ELService.class).createEvaluator("workflow");
+        job = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQueryExecutor.WorkflowJobQuery.GET_WORKFLOW, job.getId());
+        action = WorkflowActionQueryExecutor.getInstance().get(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.GET_ACTION, action.getId());
+        DagELFunctions.configureEvaluator(eval, job, action);
+        assertEquals("", eval.evaluate("${wf:lastErrorNode()}", String.class));
+
+        action.setExternalStatus("SUCCEEDED");
+        action.setStatus(WorkflowAction.Status.DONE);
+        WorkflowActionQueryExecutor.getInstance().executeUpdate(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+
+        new ActionEndXCommandIgnoreSignalException(action.getId(), action.getType()).call();
+
+        job = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQueryExecutor.WorkflowJobQuery.GET_WORKFLOW, job.getId());
+        action = WorkflowActionQueryExecutor.getInstance().get(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.GET_ACTION, action.getId());
+        assertEquals(WorkflowAction.Status.OK, action.getStatus());
+        DagELFunctions.configureEvaluator(eval, job, action);
+        assertEquals("", eval.evaluate("${wf:lastErrorNode()}", String.class));
+    }
+
+    // This test simulates an action that gets retried because of an Error and never succeeds on later retries.  The lastErrorNode
+    // EL function should be set to this node, but only after the last retry.
+    public void testLastErrorNodeWithRetryFail() throws Exception {
+        WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.END_RETRY, true);
+        action.setType("java");
+        action.setExternalStatus("FAILED");
+        action.setErrorInfo("JA018", "some error occurred");
+        WorkflowActionQueryExecutor.getInstance().executeUpdate(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+
+        new ActionEndXCommandIgnoreSignalException(action.getId(), action.getType()).call();
+
+        ELEvaluator eval = Services.get().get(ELService.class).createEvaluator("workflow");
+        job = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQueryExecutor.WorkflowJobQuery.GET_WORKFLOW, job.getId());
+        action = WorkflowActionQueryExecutor.getInstance().get(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.GET_ACTION, action.getId());
+        DagELFunctions.configureEvaluator(eval, job, action);
+        assertEquals("", eval.evaluate("${wf:lastErrorNode()}", String.class));
+
+        action.setExternalStatus("FAILED");
+        action.setErrorInfo("JA018", "some error occurred");
+        action.setStatus(WorkflowAction.Status.END_RETRY);
+        action.setUserRetryCount(action.getUserRetryMax()); // make it the last retry
+        WorkflowActionQueryExecutor.getInstance().executeUpdate(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.UPDATE_ACTION, action);
+
+        new ActionEndXCommandIgnoreSignalException(action.getId(), action.getType()).call();
+
+        job = WorkflowJobQueryExecutor.getInstance().get(WorkflowJobQueryExecutor.WorkflowJobQuery.GET_WORKFLOW, job.getId());
+        action = WorkflowActionQueryExecutor.getInstance().get(
+                WorkflowActionQueryExecutor.WorkflowActionQuery.GET_ACTION, action.getId());
+        assertEquals(WorkflowAction.Status.ERROR, action.getStatus());
+        DagELFunctions.configureEvaluator(eval, job, action);
+        assertEquals(action.getName(), eval.evaluate("${wf:lastErrorNode()}", String.class));
+    }
+
+    private class ActionEndXCommandIgnoreSignalException extends ActionEndXCommand {
+
+        public ActionEndXCommandIgnoreSignalException(String actionId, String type) {
+            super(actionId, type);
+        }
+
+        @Override
+        protected Void execute() throws CommandException {
+            try {
+                return super.execute();
+            } catch (CommandException ce) {
+                // ActionEndXCommand will trigger a SignalXComamnd, which will complain about executionPath being empty -- ignore it
+                if (!(ce.getCause() instanceof IllegalArgumentException)
+                        || !ce.getMessage().equals("E0607: Other error in operation [signal], executionPath cannot be empty")) {
+                    throw ce;
+                }
+            }
+            return null;
+        }
+    }
 }

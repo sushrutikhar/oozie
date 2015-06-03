@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.wf;
 
 import java.util.ArrayList;
@@ -78,6 +79,11 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
     }
 
     @Override
+    protected void setLogInfo() {
+        LogUtils.setLogInfo(actionId);
+    }
+
+    @Override
     protected boolean isLockRequired() {
         return true;
     }
@@ -101,8 +107,8 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                         jobId);
                 this.wfAction = WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION_END,
                         actionId);
-                LogUtils.setLogInfo(wfJob, logInfo);
-                LogUtils.setLogInfo(wfAction, logInfo);
+                LogUtils.setLogInfo(wfJob);
+                LogUtils.setLogInfo(wfAction);
             }
             else {
                 throw new CommandException(ErrorCode.E0610);
@@ -176,9 +182,6 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
             cron.stop();
             addActionCron(wfAction.getType(), cron);
 
-            WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
-            DagELFunctions.setActionInfo(wfInstance, wfAction);
-            wfJob.setWorkflowInstance(wfInstance);
             incrActionCounter(wfAction.getType(), 1);
 
             if (!context.isEnded()) {
@@ -220,6 +223,10 @@ public class ActionEndXCommand extends ActionXCommand<Void> {
                     }
                 }
             }
+            WorkflowInstance wfInstance = wfJob.getWorkflowInstance();
+            DagELFunctions.setActionInfo(wfInstance, wfAction);
+            wfJob.setWorkflowInstance(wfInstance);
+
             updateList.add(new UpdateEntry<WorkflowActionQuery>(WorkflowActionQuery.UPDATE_ACTION_END,wfAction));
             wfJob.setLastModifiedTime(new Date());
             updateList.add(new UpdateEntry<WorkflowJobQuery>(WorkflowJobQuery.UPDATE_WORKFLOW_STATUS_INSTANCE_MODIFIED, wfJob));

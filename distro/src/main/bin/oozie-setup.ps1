@@ -88,14 +88,14 @@ if (($Command -eq "sharelib") -Or ($Command -eq "db")) {
           $OOZIE_OPTS="$OOZIE_OPTS -Dderby.stream.error.file=$OOZIE_HOME\log\derby.log"
 
           $OOZIECPPATH=""
-          $OOZIECPPATH="$OOZIE_HOME\libtools\*"
+          $OOZIECPPATH="$OOZIE_HOME\libtools\*;$OOZIE_HOME\lib\*;$OOZIE_HOME\..\extra_libs\*"
 
           $COMMAND_OPTS=[string]$args
 
           if ($Command -eq "sharelib") {
-            cmd /c $JAVA_BIN $OOZIE_OPTS -cp $OOZIECPPATH org.apache.oozie.tools.OozieSharelibCLI $COMMAND_OPTS
+            Start-Process $JAVA_BIN -ArgumentList "$OOZIE_OPTS -cp $OOZIECPPATH org.apache.oozie.tools.OozieSharelibCLI $COMMAND_OPTS" -Wait -NoNewWindow
           } elseif ($Command -eq "db") {
-            cmd /c $JAVA_BIN $OOZIE_OPTS -cp $OOZIECPPATH org.apache.oozie.tools.OozieDBCLI $COMMAND_OPTS
+            Start-Process $JAVA_BIN -ArgumentList "$OOZIE_OPTS -cp $OOZIECPPATH org.apache.oozie.tools.OozieDBCLI $COMMAND_OPTS" -Wait -NoNewWindow
           }
           exit 0
 }elseif ($Command -eq "prepare-war"){

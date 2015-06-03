@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.io.ByteArrayInputStream;
@@ -23,44 +24,47 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.io.StringReader;
+import java.net.URI;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
 import java.util.regex.Matcher;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
-import org.apache.oozie.client.CoordinatorAction;
-import org.apache.oozie.client.CoordinatorJob;
-import org.apache.oozie.client.Job;
-import org.apache.oozie.client.OozieClient;
-import org.apache.oozie.client.OozieClientException;
+import org.apache.oozie.action.oozie.JavaSleepAction;
+import org.apache.oozie.client.*;
 import org.apache.oozie.client.CoordinatorJob.Execution;
 import org.apache.oozie.client.rest.RestConstants;
 import org.apache.oozie.command.CommandException;
 import org.apache.oozie.coord.CoordELFunctions;
-import org.apache.oozie.executor.jpa.CoordActionGetJPAExecutor;
-import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
+import org.apache.oozie.local.LocalOozie;
+import org.apache.oozie.service.UUIDService;
+import org.apache.oozie.dependency.URIHandler;
+import org.apache.oozie.executor.jpa.CoordActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordActionQueryExecutor;
+import org.apache.oozie.executor.jpa.CoordActionQueryExecutor.CoordActionQuery;
 import org.apache.oozie.executor.jpa.CoordJobInsertJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
-import org.apache.oozie.executor.jpa.CoordJobQueryExecutor.CoordJobQuery;
-import org.apache.oozie.local.LocalOozie;
 import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.SchemaService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.StatusTransitService;
-import org.apache.oozie.service.StoreService;
-import org.apache.oozie.store.CoordinatorStore;
+import org.apache.oozie.service.URIHandlerService;
 import org.apache.oozie.store.StoreException;
 import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.util.DateUtils;
 import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.util.XLog;
 import org.apache.oozie.util.XmlUtils;
+import org.apache.oozie.util.XConfiguration;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 
@@ -91,39 +95,26 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
         }
-        finally {
-            store.closeTrx();
-        }
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId);
         assertEquals(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
 
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), false, true);
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
+
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
         assertNull(action2.getExternalId());
-        store2.commitTrx();
-        store2.closeTrx();
     }
 
     /**
@@ -137,22 +128,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         String rerunScope = Integer.toString(actionNum1) + "-" + Integer.toString(actionNum2);
@@ -160,14 +145,10 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, rerunScope, false, true);
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId1, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId1);
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        CoordinatorActionBean action2 = store1.getCoordinatorAction(actionId2, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId2);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
     }
 
     /**
@@ -181,36 +162,26 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
         String rerunScope = Integer.toString(actionNum1) + "," + Integer.toString(actionNum2);
 
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, rerunScope, false, true);
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId1, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId1);
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        CoordinatorActionBean action2 = store1.getCoordinatorAction(actionId2, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId2);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
     }
 
     /**
@@ -224,22 +195,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         String rerunScope = "1-3";
@@ -260,20 +225,14 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.RUNNING,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.RUNNING,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         try {
@@ -288,12 +247,8 @@ public class TestCoordRerunXCommand extends XDataTestCase {
             }
         }
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertEquals(action2.getStatus(), CoordinatorAction.Status.RUNNING);
-        store2.commitTrx();
-        store2.closeTrx();
     }
 
     /**
@@ -305,38 +260,24 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
         }
-        finally {
-            store.closeTrx();
-        }
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId);
         assertEquals(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
 
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true);
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store2.commitTrx();
-        store2.closeTrx();
     }
 
     /**
@@ -350,22 +291,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         String rerunScope = "2009-12-15T01:00Z" + "::" + "2009-12-16T01:00Z";
@@ -373,14 +308,10 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_DATE, rerunScope, false, true);
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId1, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId1);
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        CoordinatorActionBean action2 = store1.getCoordinatorAction(actionId2, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId2);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
     }
 
     /**
@@ -394,22 +325,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         String rerunScope = "2009-12-15T01:00Z" + "," + "2009-12-16T01:00Z";
@@ -417,14 +342,10 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_DATE, rerunScope, false, true);
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId1, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId1);
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        CoordinatorActionBean action2 = store1.getCoordinatorAction(actionId2, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId2);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
     }
 
     /**
@@ -439,22 +360,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         String rerunScope = "2009-12-15T01:00Z" + "::" + "2009-12-17T01:00Z";
@@ -462,14 +377,10 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_DATE, rerunScope, false, true);
 
-        CoordinatorStore store1 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store1.beginTrx();
-        CoordinatorActionBean action1 = store1.getCoordinatorAction(actionId1, false);
+        CoordinatorActionBean action1 = getCoordinatorAction(actionId1);
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        CoordinatorActionBean action2 = store1.getCoordinatorAction(actionId2, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId2);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store1.commitTrx();
-        store1.closeTrx();
     }
 
     /**
@@ -484,22 +395,16 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final int actionNum2 = 2;
         final String actionId1 = jobId + "@" + actionNum1;
         final String actionId2 = jobId + "@" + actionNum2;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum1, actionId1, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum1, actionId1, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            addRecordToActionTable(jobId, actionNum2, actionId2, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToActionTable(jobId, actionNum2, actionId2, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action2.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
         String rerunScope = "2009-12-15T01:00Z,2009-12-16T01:00Z,2009-12-17T01:00Z";
         try {
@@ -521,20 +426,14 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
         Path appPath = new Path(getFsTestCaseDir(), "coord");
         String inputDir = appPath.toString() + "/coord-input/2010/07/09/01/00";
@@ -545,12 +444,8 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), true, true);
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store2.commitTrx();
-        store2.closeTrx();
 
         waitFor(120 * 1000, new Predicate() {
             @Override
@@ -560,16 +455,12 @@ public class TestCoordRerunXCommand extends XDataTestCase {
             }
         });
 
-        CoordinatorStore store3 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store3.beginTrx();
-        CoordinatorActionBean action3 = store3.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action3 = getCoordinatorAction(actionId);
         String actionXml = action3.getActionXml();
         System.out.println("After refresh, action xml= " + actionXml);
 
         Element eAction = XmlUtils.parseXml(actionXml);
         String[] urls = getActionXmlUrls(eAction, getTestUser(), getTestGroup());
-        store3.commitTrx();
-        store3.closeTrx();
 
         /*        if (urls != null) {
                     assertEquals(inputDir, urls[0]);
@@ -577,6 +468,54 @@ public class TestCoordRerunXCommand extends XDataTestCase {
                 else {
                     fail("After refresh, latest() should get the inputDir:" + inputDir);
                 }*/
+    }
+
+    /**
+     * Test : nocleanup option in dataset
+     *
+     * @throws Exception
+     */
+    public void testCoordRerunCleanupOption() throws Exception {
+        final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+        final int actionNum = 1;
+        final String actionId = jobId + "@" + actionNum;
+        try {
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
+                    "coord-rerun-action4.xml");
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            fail("Could not update db.");
+        }
+        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        String outputDir = appPath.toString() + "/coord-input/2009/12/14/11/00";
+        Path success = new Path(outputDir, "_SUCCESS");
+        FileSystem fs = getFileSystem();
+        fs.mkdirs(new Path(outputDir));
+        fs.create(success, true);
+        // before cleanup
+        assertTrue(fs.exists(success));
+        long beforeModifiedTime = fs.getFileStatus(success).getModificationTime();
+
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), false, false);
+
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
+        assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+
+        waitFor(120 * 1000, new Predicate() {
+            @Override
+            public boolean evaluate() throws Exception {
+                CoordinatorAction bean = coordClient.getCoordActionInfo(actionId);
+                return (bean.getStatus() == CoordinatorAction.Status.WAITING || bean.getStatus() == CoordinatorAction.Status.READY);
+            }
+        });
+
+        // after cleanup
+        assertTrue(fs.exists(success));
+        long afterModifiedTime = fs.getFileStatus(success).getModificationTime();
+        assertEquals(beforeModifiedTime, afterModifiedTime);
     }
 
     /**
@@ -588,20 +527,14 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
         Path appPath = new Path(getFsTestCaseDir(), "coord");
         String outputDir = appPath.toString() + "/coord-input/2009/12/14/11/00";
@@ -615,12 +548,8 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), false, false);
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store2.commitTrx();
-        store2.closeTrx();
 
         waitFor(120 * 1000, new Predicate() {
             @Override
@@ -635,6 +564,63 @@ public class TestCoordRerunXCommand extends XDataTestCase {
     }
 
     /**
+     * Test : rerun with refresh option when input dependency is hcat partition
+     *
+     * @throws Exception
+     */
+    public void testCoordRerunCleanupForHCat() throws Exception {
+
+        services = super.setupServicesForHCatalog();
+        services.init();
+
+        final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
+        final int actionNum = 1;
+        final String actionId = jobId + "@" + actionNum;
+        try {
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
+                    "coord-rerun-action1.xml", true);
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            fail("Could not update db.");
+        }
+
+        String db = "mydb";
+        String table = "mytable";
+        String server = getHCatalogServer().getMetastoreAuthority();
+        String newHCatDependency = "hcat://" + server + "/" + db + "/" + table + "/ds=2009121411;region=usa";
+
+        dropTable(db, table, true);
+        dropDatabase(db, true);
+        createDatabase(db);
+        createTable(db, table, "ds,region");
+        addPartition(db, table, "ds=2009121411;region=usa");
+
+        // before cleanup
+        Configuration conf = new Configuration();
+        URIHandler handler = services.get(URIHandlerService.class).getURIHandler(newHCatDependency);
+        assertTrue(handler.exists(new URI(newHCatDependency), conf, getTestUser()));
+
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), false, false);
+
+        CoordinatorActionBean action2 = CoordActionQueryExecutor.getInstance().get(CoordActionQuery.GET_COORD_ACTION, actionId);
+        assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
+
+        waitFor(120 * 1000, new Predicate() {
+            @Override
+            public boolean evaluate() throws Exception {
+                CoordinatorAction bean = coordClient.getCoordActionInfo(actionId);
+                return (bean.getStatus() == CoordinatorAction.Status.WAITING || bean.getStatus() == CoordinatorAction.Status.READY);
+            }
+        });
+
+        // after cleanup
+        assertFalse(handler.exists(new URI(newHCatDependency), conf, getTestUser()));
+    }
+
+    /**
      * Test : rerun <jobId> -action 1 with no output-event
      *
      * @throws Exception
@@ -643,30 +629,20 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.SUCCEEDED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.SUCCEEDED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action3.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
         }
-        finally {
-            store.closeTrx();
-        }
 
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(jobId, RestConstants.JOB_COORD_SCOPE_ACTION, Integer.toString(actionNum), false, false);
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
-        store2.commitTrx();
-        store2.closeTrx();
         waitFor(120 * 1000, new Predicate() {
             @Override
             public boolean evaluate() throws Exception {
@@ -687,15 +663,12 @@ public class TestCoordRerunXCommand extends XDataTestCase {
     public void testCoordRerunInFailed() throws Exception {
         CoordinatorJobBean job = this.addRecordToCoordJobTable(Job.Status.FAILED, false, false);
 
-        JPAService jpaService = Services.get().get(JPAService.class);
-        assertNotNull(jpaService);
-        CoordJobGetJPAExecutor coordJobGetExecutor = new CoordJobGetJPAExecutor(job.getId());
-        job = jpaService.execute(coordJobGetExecutor);
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.FAILED, job.getStatus());
 
         try {
-            new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true)
-                    .call();
+            new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true,
+                    false, null).call();
             fail("Coordinator job is FAILED, rerun should throw exception");
         }
         catch (CommandException ce) {
@@ -718,13 +691,12 @@ public class TestCoordRerunXCommand extends XDataTestCase {
 
         JPAService jpaService = Services.get().get(JPAService.class);
         assertNotNull(jpaService);
-        CoordJobGetJPAExecutor coordJobGetExecutor = new CoordJobGetJPAExecutor(job.getId());
-        job = jpaService.execute(coordJobGetExecutor);
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.DONEWITHERROR, job.getStatus());
 
-        new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true)
-                .call();
-        job = jpaService.execute(coordJobGetExecutor);
+        new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true, false,
+                null).call();
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.RUNNINGWITHERROR, job.getStatus());
 
     }
@@ -741,14 +713,13 @@ public class TestCoordRerunXCommand extends XDataTestCase {
 
         JPAService jpaService = Services.get().get(JPAService.class);
         assertNotNull(jpaService);
-        CoordJobGetJPAExecutor coordJobGetExecutor = new CoordJobGetJPAExecutor(job.getId());
-        job = jpaService.execute(coordJobGetExecutor);
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.PAUSED, job.getStatus());
 
-        new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true)
-                .call();
+        new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true, false,
+                null).call();
 
-        job = jpaService.execute(coordJobGetExecutor);
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.PAUSED, job.getStatus());
         assertNotNull(job.getPauseTime());
     }
@@ -766,14 +737,13 @@ public class TestCoordRerunXCommand extends XDataTestCase {
 
         JPAService jpaService = Services.get().get(JPAService.class);
         assertNotNull(jpaService);
-        CoordJobGetJPAExecutor coordJobGetExecutor = new CoordJobGetJPAExecutor(job.getId());
-        job = jpaService.execute(coordJobGetExecutor);
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.PAUSEDWITHERROR, job.getStatus());
 
-        new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true)
-                .call();
+        new CoordRerunXCommand(job.getId(), RestConstants.JOB_COORD_SCOPE_DATE, "2009-12-15T01:00Z", false, true, false,
+                null).call();
 
-        job = jpaService.execute(coordJobGetExecutor);
+        job = getCoordinatorJob(job.getId());
         assertEquals(Job.Status.PAUSEDWITHERROR, job.getStatus());
         assertNotNull(job.getPauseTime());
     }
@@ -787,20 +757,14 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.KILLED);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.SUCCEEDED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.KILLED);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.SUCCEEDED,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         try {
@@ -813,12 +777,8 @@ public class TestCoordRerunXCommand extends XDataTestCase {
             fail("Coord rerun failed");
         }
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertEquals(action2.getStatus(), CoordinatorAction.Status.WAITING);
-        store2.commitTrx();
-        store2.closeTrx();
     }
 
     /*
@@ -828,20 +788,14 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final String jobId = "0000000-" + new Date().getTime() + "-testCoordRerun-C";
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
         try {
-            addRecordToJobTable(jobId, store, CoordinatorJob.Status.RUNNING);
-            addRecordToActionTable(jobId, actionNum, actionId, store, CoordinatorAction.Status.FAILED,
+            addRecordToJobTable(jobId, CoordinatorJob.Status.RUNNING);
+            addRecordToActionTable(jobId, actionNum, actionId, CoordinatorAction.Status.FAILED,
                     "coord-rerun-action1.xml");
-            store.commitTrx();
         }
         catch (Exception e) {
             e.printStackTrace();
             fail("Could not update db.");
-        }
-        finally {
-            store.closeTrx();
         }
 
         try {
@@ -853,9 +807,10 @@ public class TestCoordRerunXCommand extends XDataTestCase {
             ex.printStackTrace();
             fail("Coord rerun failed");
         }
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        CoordinatorActionBean action2 = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action2 = getCoordinatorAction(actionId);
         assertEquals(action2.getStatus(), CoordinatorAction.Status.WAITING);
+        assertEquals(action2.getErrorCode(), "");
+        assertEquals(action2.getErrorMessage(), "");
     }
 
     /**
@@ -894,16 +849,13 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(coordJob.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, rerunScope, false, true);
 
-        CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
-        coordJob = jpaService.execute(coordJobGetCmd);
+        coordJob = getCoordinatorJob(coordJob.getId());
         assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJob.getStatus());
 
-        CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action1.getId());
-        action1 = jpaService.execute(coordActionGetCmd);
+        action1 = getCoordinatorAction(action1.getId());
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.FAILED);
 
-        coordActionGetCmd = new CoordActionGetJPAExecutor(action2.getId());
-        action2 = jpaService.execute(coordActionGetCmd);
+        action2 = getCoordinatorAction(action2.getId());
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
     }
 
@@ -943,16 +895,13 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(coordJob.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, rerunScope, false, true);
 
-        CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
-        coordJob = jpaService.execute(coordJobGetCmd);
+        coordJob = getCoordinatorJob(coordJob.getId());
         assertEquals(CoordinatorJob.Status.SUSPENDED, coordJob.getStatus());
 
-        CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action1.getId());
-        action1 = jpaService.execute(coordActionGetCmd);
+        action1 = getCoordinatorAction(action1.getId());
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.FAILED);
 
-        coordActionGetCmd = new CoordActionGetJPAExecutor(action2.getId());
-        action2 = jpaService.execute(coordActionGetCmd);
+        action2 = getCoordinatorAction(action2.getId());
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
     }
 
@@ -993,16 +942,13 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         final OozieClient coordClient = LocalOozie.getCoordClient();
         coordClient.reRunCoord(coordJob.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, rerunScope, false, true);
 
-        CoordJobGetJPAExecutor coordJobGetCmd = new CoordJobGetJPAExecutor(coordJob.getId());
-        coordJob = jpaService.execute(coordJobGetCmd);
+        coordJob = getCoordinatorJob(coordJob.getId());
         assertEquals(CoordinatorJob.Status.SUCCEEDED, coordJob.getStatus());
 
-        CoordActionGetJPAExecutor coordActionGetCmd = new CoordActionGetJPAExecutor(action1.getId());
-        action1 = jpaService.execute(coordActionGetCmd);
+        action1 = getCoordinatorAction(action1.getId());
         assertNotSame(action1.getStatus(), CoordinatorAction.Status.SUCCEEDED);
 
-        coordActionGetCmd = new CoordActionGetJPAExecutor(action2.getId());
-        action2 = jpaService.execute(coordActionGetCmd);
+        action2 = getCoordinatorAction(action2.getId());
         assertNotSame(action2.getStatus(), CoordinatorAction.Status.SUCCEEDED);
     }
 
@@ -1025,7 +971,7 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         return coordJob;
     }
 
-    private void addRecordToJobTable(String jobId, CoordinatorStore store, CoordinatorJob.Status status)
+    private void addRecordToJobTable(String jobId, CoordinatorJob.Status status)
             throws StoreException, IOException {
         Path appPath = new Path(getFsTestCaseDir(), "coord");
         String appXml = getCoordJobXml(appPath);
@@ -1067,20 +1013,30 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         }
 
         try {
-            store.insertCoordinatorJob(coordJob);
-        }
-        catch (StoreException se) {
-            se.printStackTrace();
-            store.rollbackTrx();
+            addRecordToCoordJobTable(coordJob);
+        } catch (Exception e) {
+            e.printStackTrace();
             fail("Unable to insert the test job record to table");
-            throw se;
+            throw new StoreException(ErrorCode.E1019, e.getMessage());
         }
+
     }
 
-    private void addRecordToActionTable(String jobId, int actionNum, String actionId, CoordinatorStore store,
+    private void addRecordToActionTable(String jobId, int actionNum, String actionId,
             CoordinatorAction.Status status, String resourceXmlName) throws StoreException, IOException {
+        addRecordToActionTable(jobId, actionNum, actionId, status, resourceXmlName, false);
+    }
+
+    private void addRecordToActionTable(String jobId, int actionNum, String actionId,
+            CoordinatorAction.Status status, String resourceXmlName, boolean isHCatDep) throws StoreException,
+            IOException {
         Path appPath = new Path(getFsTestCaseDir(), "coord");
-        String actionXml = getCoordActionXml(appPath, resourceXmlName);
+        String actionXml = null;
+        if(isHCatDep != true) {
+            actionXml = getCoordActionXml(appPath, resourceXmlName);
+        } else {
+            actionXml = getCoordActionXmlForHCat(appPath, resourceXmlName);
+        }
         String actionNomialTime = getActionNomialTime(actionXml);
 
         CoordinatorActionBean action = new CoordinatorActionBean();
@@ -1104,15 +1060,19 @@ public class TestCoordRerunXCommand extends XDataTestCase {
 
         action.setCreatedConf(createdConf);
 
+        if (status.equals(CoordinatorAction.Status.FAILED)) {
+            action.setErrorCode("E1000");
+            action.setErrorMessage("Error");
+        }
+
         try {
-            store.insertCoordinatorAction(action);
-        }
-        catch (StoreException se) {
-            se.printStackTrace();
-            store.rollbackTrx();
+            addRecordToCoordActionTable(action, null);
+        } catch (Exception e) {
+            e.printStackTrace();
             fail("Unable to insert the test job record to table");
-            throw se;
+            throw new StoreException(ErrorCode.E1019, e.getMessage());
         }
+
     }
 
     private Properties getCoordProp(Path appPath) throws IOException {
@@ -1193,6 +1153,30 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         }
     }
 
+    protected String getCoordActionXmlForHCat(Path appPath, String resourceXmlName) {
+        String hcatServer = getHCatalogServer().getMetastoreAuthority();
+        String inputTemplate = "hcat://" + hcatServer + "/mydb/mytable/ds=${YEAR}${MONTH}${DAY}${HOUR};region=usa";
+        inputTemplate = Matcher.quoteReplacement(inputTemplate);
+        String outputTemplate = "hcat://" + hcatServer + "/mydb/mytable/ds=${YEAR}${MONTH}${DAY}${HOUR};region=usa";
+        outputTemplate = Matcher.quoteReplacement(outputTemplate);
+        String inputDir = "hcat://" + hcatServer + "/mydb/mytable/ds=2010070501;region=usa";
+        inputDir = Matcher.quoteReplacement(inputDir);
+        String outputDir = "hcat://" + hcatServer + "/mydb/mytable/ds=2009121411;region=usa";
+        outputDir = Matcher.quoteReplacement(outputDir);
+        try {
+            Reader reader = IOUtils.getResourceAsReader(resourceXmlName, -1);
+            String appXml = IOUtils.getReaderAsString(reader, -1);
+            appXml = appXml.replaceAll("#inputTemplate", inputTemplate);
+            appXml = appXml.replaceAll("#outputTemplate", outputTemplate);
+            appXml = appXml.replaceAll("#inputDir", inputDir);
+            appXml = appXml.replaceAll("#outputDir", outputDir);
+            return appXml;
+        }
+        catch (IOException ioe) {
+            throw new RuntimeException(XLog.format("Could not get " + resourceXmlName, ioe));
+        }
+    }
+
     private String getActionNomialTime(String actionXml) {
         Element eAction;
         try {
@@ -1204,5 +1188,251 @@ public class TestCoordRerunXCommand extends XDataTestCase {
         String actionNomialTime = eAction.getAttributeValue("action-nominal-time");
 
         return actionNomialTime;
+    }
+
+    /**
+     * It will verify the Action status running when workflow triggered.
+     * @throws Exception
+     */
+    public void testActionStatusRunningWithWorkflow() throws Exception {
+        Date start = DateUtils.parseDateOozieTZ("2009-12-15T01:00Z");
+        Date end = DateUtils.parseDateOozieTZ("2009-12-16T01:00Z");
+        CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false,
+                false, 1);
+
+        CoordinatorActionBean action = addRecordToWithLazyAction(coordJob.getId(), 1,
+                CoordinatorAction.Status.SUBMITTED, "coord-rerun-action1.xml");
+
+        String actionId = action.getId();
+        new CoordActionStartXCommand(actionId, getTestUser(), "myapp", "myjob").call();
+
+        action = getCoordinatorAction(actionId);
+
+        if (action.getStatus() == CoordinatorAction.Status.SUBMITTED) {
+            fail("CoordActionStartCommand didn't work because the status for action id" + actionId + " is :"
+                    + action.getStatus() + " expected to be NOT SUBMITTED (i.e. RUNNING)");
+        }
+
+        final String wfId = action.getExternalId();
+
+        final OozieClient wfClient = LocalOozie.getClient();
+
+        waitFor(15 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.RUNNING;
+            }
+        });
+
+        wfClient.kill(wfId);
+
+        waitFor(15 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.KILLED;
+            }
+        });
+        assertEquals(WorkflowJob.Status.KILLED, wfClient.getJobInfo(wfId).getStatus());
+
+        Properties conf = wfClient.createConfiguration();
+        conf.setProperty(OozieClient.RERUN_FAIL_NODES, "true");
+        wfClient.reRun(wfId,conf);
+
+        waitFor(15 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return wfClient.getJobInfo(wfId).getStatus() == WorkflowJob.Status.RUNNING;
+            }
+        });
+
+        assertEquals(WorkflowJob.Status.RUNNING, wfClient.getJobInfo(wfId).getStatus());
+        OozieClient coordActionClient = LocalOozie.getCoordClient();
+        assertEquals(CoordinatorAction.Status.RUNNING,coordActionClient.getCoordActionInfo(actionId).getStatus());
+    }
+
+    private CoordinatorActionBean addRecordToWithLazyAction
+            (String jobId, int actionNum, CoordinatorAction.Status status, String resourceXmlName) throws IOException {
+        Path appPath = new Path(getFsTestCaseDir(), "coord");
+        String actionXml = getCoordActionXml(appPath, resourceXmlName);
+        String actionNomialTime = getActionNomialTime(actionXml);
+
+        CoordinatorActionBean action = new CoordinatorActionBean();
+        action.setJobId(jobId);
+        action.setId(Services.get().get(UUIDService.class).generateChildId(jobId, actionNum + ""));
+        action.setActionNumber(actionNum);
+        try {
+            action.setNominalTime(DateUtils.parseDateOozieTZ(actionNomialTime));
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            fail("Unable to get action nominal time");
+            throw new IOException(e);
+        }
+        action.setLastModifiedTime(new Date());
+        action.setStatus(status);
+        action.setActionXml(actionXml);
+
+        Properties conf = getLazyWorkflowProp(appPath);
+        String createdConf = XmlUtils.writePropToString(conf);
+        action.setCreatedConf(createdConf);
+
+        JPAService jpaService = Services.get().get(JPAService.class);
+        assertNotNull(jpaService);
+        CoordActionInsertJPAExecutor coordActionInsertCmd = new CoordActionInsertJPAExecutor(action);
+        try {
+            jpaService.execute(coordActionInsertCmd);
+        } catch (JPAExecutorException e) {
+            e.printStackTrace();
+            fail("Unable to insert the test coord action record to table");
+        }
+        return action;
+    }
+
+    private Properties getLazyWorkflowProp(Path appPath) throws IOException {
+        Path wfAppPath = new Path(getFsTestCaseDir(), "workflow");
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        Properties conf = coordClient.createConfiguration();
+        conf.setProperty(OozieClient.COORDINATOR_APP_PATH, appPath.toString());
+        conf.setProperty("jobTracker", getJobTrackerUri());
+        conf.setProperty("nameNode", getNameNodeUri());
+        conf.setProperty("wfAppPath", wfAppPath.toString());
+        conf.remove("user.name");
+        conf.setProperty("user.name", getTestUser());
+        writeToFile(getLazyWorkflow(), wfAppPath, "workflow.xml");
+        return conf;
+    }
+    public String getLazyWorkflow() {
+        return  "<workflow-app xmlns='uri:oozie:workflow:0.1'  xmlns:sla='uri:oozie:sla:0.1' name='no-op-wf'>" +
+                "<start to='java' />" +
+                "       <action name='java'>" +
+                "<java>" +
+                "<job-tracker>" + getJobTrackerUri() + "</job-tracker>" +
+                "<name-node>" + getNameNodeUri() + "</name-node>" +
+                "<main-class>" + JavaSleepAction.class.getName() + "</main-class>" +
+                "<arg>exit0</arg>" +
+                "</java>"
+                + "<ok to='end' />"
+                + "<error to='fail' />"
+                + "</action>"
+                + "<kill name='fail'>"
+                + "<message>shell action fail, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>"
+                + "</kill>"
+                + "<end name='end' />"
+                + "</workflow-app>";
+    }
+
+    /**
+     * Tests -failed option of rerun. If failed option is provided it should rerun the old workflow of an action
+     * otherwise it should run the new workflow.
+     * @throws Exception
+     */
+    public void testCoordRerunWithFailedOption() throws Exception {
+        Date start = DateUtils.parseDateOozieTZ("2009-02-01T01:00Z");
+        Date end = DateUtils.parseDateOozieTZ("2009-02-01T23:59Z");
+        CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false,
+                false, 1);
+
+        CoordinatorActionBean action = addRecordToWithLazyAction(coordJob.getId(), 1,
+                CoordinatorAction.Status.SUBMITTED, "coord-rerun-action1.xml");
+        final String actionId = action.getId();
+        new CoordActionStartXCommand(actionId, getTestUser(), "myapp", "myjob").call();
+
+        action = getCoordinatorAction(actionId);
+
+        if (action.getStatus() == CoordinatorAction.Status.SUBMITTED) {
+            fail("CoordActionStartCommand didn't work because the status for action id" + actionId + " is :"
+                    + action.getStatus() + " expected to be NOT SUBMITTED (i.e. RUNNING)");
+        }
+
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        final OozieClient wclient = LocalOozie.getClient();
+        waitFor(15*1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.RUNNING);
+            }
+        });
+
+        wclient.kill(coordClient.getCoordActionInfo(actionId).getExternalId());
+
+        waitFor(150*1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.KILLED);
+            }
+        });
+
+        String externalId = coordClient.getCoordActionInfo(actionId).getExternalId();
+
+        coordClient.reRunCoord(coordJob.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, "1", false, true, true,
+                new Properties());
+
+        waitFor(150 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.SUCCEEDED);
+            }
+        });
+        assertEquals(externalId,coordClient.getCoordActionInfo(actionId).getExternalId());
+
+        coordClient.reRunCoord(coordJob.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, "1", false, true, false,
+                new Properties());
+
+        waitFor(150*1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.SUCCEEDED);
+            }
+        });
+        assertNotSame(externalId,coordClient.getCoordActionInfo(actionId).getExternalId());
+    }
+
+    /**
+     *  Passing config of workflow during rerun of coordinator.
+     * @throws Exception
+     */
+    public void testCoordRerunWithConfOption() throws Exception {
+        Date start = DateUtils.parseDateOozieTZ("2009-02-01T01:00Z");
+        Date end = DateUtils.parseDateOozieTZ("2009-02-01T23:59Z");
+        CoordinatorJobBean coordJob = addRecordToCoordJobTable(CoordinatorJob.Status.RUNNING, start, end, false,
+                false, 1);
+
+        CoordinatorActionBean action = addRecordToWithLazyAction(coordJob.getId(), 1,
+                CoordinatorAction.Status.SUBMITTED, "coord-rerun-action1.xml");
+        final String actionId = action.getId();
+        new CoordActionStartXCommand(actionId, getTestUser(), "myapp", "myjob").call();
+
+        action = getCoordinatorAction(actionId);
+
+        if (action.getStatus() == CoordinatorAction.Status.SUBMITTED) {
+            fail("CoordActionStartCommand didn't work because the status for action id" + actionId + " is :"
+                    + action.getStatus() + " expected to be NOT SUBMITTED (i.e. RUNNING)");
+        }
+
+        final OozieClient coordClient = LocalOozie.getCoordClient();
+        final OozieClient wclient = LocalOozie.getClient();
+        waitFor(15*1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.RUNNING);
+            }
+        });
+
+        wclient.kill(coordClient.getCoordActionInfo(actionId).getExternalId());
+
+        waitFor(150*1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.KILLED);
+            }
+        });
+
+        Properties prop = new Properties();
+
+        // Passing props to coordinator which will be passed to workflow rerun as well.
+        prop.setProperty("workflowConf", "foo");
+        coordClient.reRunCoord(coordJob.getId(), RestConstants.JOB_COORD_SCOPE_ACTION, "1", false, true, true,
+                prop);
+
+        waitFor(150 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return (coordClient.getCoordActionInfo(actionId).getStatus() == CoordinatorAction.Status.SUCCEEDED);
+            }
+        });
+
+        WorkflowJob wfJob = wclient.getJobInfo(coordClient.getCoordActionInfo(actionId).getExternalId());
+        Configuration conf = new XConfiguration(new StringReader(wfJob.getConf()));
+        assertEquals(prop.get("workflowConf"), conf.get("workflowConf"));
     }
 }

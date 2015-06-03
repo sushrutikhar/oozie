@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.FileInputStream;
@@ -29,6 +30,7 @@ import java.util.Map;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.JobClient;
@@ -37,7 +39,9 @@ import org.apache.hadoop.mapred.JobID;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.action.hadoop.ActionExecutorTestCase.Context;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.WorkflowAppService;
@@ -61,12 +65,6 @@ public class TestHiveActionExecutor extends ActionExecutorTestCase {
     private static final String INPUT_DIRNAME = "input";
     private static final String OUTPUT_DIRNAME = "output";
     private static final String DATA_FILENAME = "data.txt";
-
-    protected void setSystemProps() throws Exception {
-        super.setSystemProps();
-        setSystemProperty("oozie.service.ActionService.executor.classes",
-                HiveActionExecutor.class.getName());
-    }
 
     @SuppressWarnings("unchecked")
     public void testSetupMethods() throws Exception {
@@ -232,4 +230,27 @@ public class TestHiveActionExecutor extends ActionExecutorTestCase {
         return new Context(wf, action);
     }
 
+    public void testActionConfLoadDefaultResources() throws Exception {
+        ConfigurationService.setBoolean(
+                "oozie.service.HadoopAccessorService.action.configurations.load.default.resources", false);
+        Path inputDir = new Path(getFsTestCaseDir(), INPUT_DIRNAME);
+        Path outputDir = new Path(getFsTestCaseDir(), OUTPUT_DIRNAME);
+
+        FileSystem fs = getFileSystem();
+        Path script = new Path(getAppPath(), HIVE_SCRIPT_FILENAME);
+        Writer scriptWriter = new OutputStreamWriter(fs.create(script));
+        scriptWriter.write(getHiveScript(inputDir.toString(), outputDir.toString()));
+        scriptWriter.close();
+
+        Writer dataWriter = new OutputStreamWriter(fs.create(new Path(inputDir, DATA_FILENAME)));
+        dataWriter.write(SAMPLE_DATA_TEXT);
+        dataWriter.close();
+
+        Context context = createContext(getActionXml());
+        submitAction(context);
+        FSDataInputStream os = fs.open(new Path(context.getActionDir(), LauncherMapper.ACTION_CONF_XML));
+        XConfiguration conf = new XConfiguration();
+        conf.addResource(os);
+        assertNull(conf.get("oozie.HadoopAccessorService.created"));
+    }
 }

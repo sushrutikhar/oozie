@@ -15,15 +15,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import org.apache.oozie.service.AuthorizationService;
-
 import org.apache.oozie.service.ProxyUserService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.ForTestAuthorizationService;
 import org.apache.oozie.service.ForTestWorkflowStoreService;
 import org.apache.oozie.test.EmbeddedServletContainer;
+import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.test.XFsTestCase;
 
 import java.net.URL;
@@ -31,7 +32,7 @@ import java.net.URLEncoder;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
-public abstract class DagServletTestCase extends XFsTestCase {
+public abstract class DagServletTestCase extends XDataTestCase {
     private EmbeddedServletContainer container;
     private String servletPath;
 

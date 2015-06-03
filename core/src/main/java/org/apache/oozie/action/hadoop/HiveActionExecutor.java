@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import static org.apache.oozie.action.hadoop.LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS;
@@ -29,11 +30,15 @@ import java.util.Properties;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RunningJob;
 import org.apache.oozie.action.ActionExecutorException;
+import org.apache.oozie.action.ActionExecutor.Context;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.XOozieClient;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorException;
+import org.apache.oozie.service.HadoopAccessorService;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
@@ -114,14 +119,7 @@ public class HiveActionExecutor extends ScriptLanguageActionExecutor {
     protected void getActionData(FileSystem actionFs, RunningJob runningJob, WorkflowAction action, Context context)
             throws HadoopAccessorException, JDOMException, IOException, URISyntaxException {
         super.getActionData(actionFs, runningJob, action, context);
-
-        if (action.getData() != null) {
-            // Load stored Hadoop jobs ids and promote them as external child
-            // ids on job success
-            Properties props = new Properties();
-            props.load(new StringReader(action.getData()));
-            context.setExternalChildIDs((String) props.get(LauncherMain.HADOOP_JOBS));
-        }
+        readExternalChildIDs(action, context);
     }
 
     /**
@@ -139,4 +137,16 @@ public class HiveActionExecutor extends ScriptLanguageActionExecutor {
         return XOozieClient.HIVE_SCRIPT;
     }
 
+    @Override
+    public String[] getShareLibFilesForActionConf() {
+        return new String[]{"hive-site.xml"};
+    }
+
+    @Override
+    protected JobConf loadHadoopDefaultResources(Context context, Element actionXml) {
+        boolean loadDefaultResources = ConfigurationService
+                .getBoolean(HadoopAccessorService.ACTION_CONFS_LOAD_DEFAULT_RESOURCES);
+        JobConf conf = super.createBaseHadoopConf(context, actionXml, loadDefaultResources);
+        return conf;
+    }
 }

@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.BufferedReader;
@@ -40,7 +41,8 @@ import org.apache.hadoop.hive.conf.HiveConf;
 
 public class HiveMain extends LauncherMain {
     private static final Pattern[] HIVE_JOB_IDS_PATTERNS = {
-      Pattern.compile("Ended Job = (job_\\S*)")
+      Pattern.compile("Ended Job = (job_\\S*)"),
+      Pattern.compile("Executing on YARN cluster with App id (application[0-9_]*)")
     };
     private static final Set<String> DISALLOWED_HIVE_OPTIONS = new HashSet<String>();
 
@@ -83,14 +85,21 @@ public class HiveMain extends LauncherMain {
 
         hiveConf.addResource(new Path("file:///", actionXml));
 
+        setYarnTag(hiveConf);
+
         // Propagate delegation related props from launcher job to Hive job
         String delegationToken = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (delegationToken != null) {
             hiveConf.set("mapreduce.job.credentials.binary", delegationToken);
+            hiveConf.set("tez.credentials.path", delegationToken);
             System.out.println("------------------------");
             System.out.println("Setting env property for mapreduce.job.credentials.binary to: " + delegationToken);
             System.out.println("------------------------");
             System.setProperty("mapreduce.job.credentials.binary", delegationToken);
+            System.out.println("------------------------");
+            System.out.println("Setting env property for tez.credentials.path to: " + delegationToken);
+            System.out.println("------------------------");
+            System.setProperty("tez.credentials.path", delegationToken);
         } else {
             System.out.println("Non-Kerberos execution");
         }
@@ -106,6 +115,8 @@ public class HiveMain extends LauncherMain {
 
         // to force hive to use the jobclient to submit the job, never using HADOOPBIN (to do localmode)
         hiveConf.setBoolean("hive.exec.mode.local.auto", false);
+
+        hiveConf.set("hive.querylog.location", "./hivelogs");
 
         return hiveConf;
     }
@@ -287,30 +298,7 @@ public class HiveMain extends LauncherMain {
         }
         finally {
             System.out.println("\n<<< Invocation of Hive command completed <<<\n");
-            writeExternalChildIDs(logFile);
-
-        }
-    }
-
-    private void writeExternalChildIDs(String logFile) {
-        // harvesting and recording Hadoop Job IDs
-        try {
-            Properties jobIds = getHadoopJobIds(logFile, HIVE_JOB_IDS_PATTERNS);
-            File file = new File(System.getProperty(LauncherMapper.ACTION_PREFIX
-                    + LauncherMapper.ACTION_DATA_OUTPUT_PROPS));
-            OutputStream os = new FileOutputStream(file);
-            try {
-                jobIds.store(os, "");
-            }
-            finally {
-                os.close();
-            }
-            System.out.println(" Hadoop Job IDs executed by Hive: " + jobIds.getProperty(HADOOP_JOBS));
-            System.out.println();
-        }
-        catch (Exception e) {
-            System.out.println("WARN: Error getting Hadoop Job IDs executed by Hive");
-            e.printStackTrace(System.out);
+            writeExternalChildIDs(logFile, HIVE_JOB_IDS_PATTERNS, "Hive");
         }
     }
 

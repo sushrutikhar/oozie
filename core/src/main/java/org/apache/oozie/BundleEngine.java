@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie;
 
 import java.io.IOException;
@@ -23,21 +24,22 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.StringTokenizer;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.BaseEngine.LOG_TYPE;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
-import org.apache.oozie.client.Job;
-import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.client.rest.BulkResponseImpl;
 import org.apache.oozie.command.BulkJobsXCommand;
 import org.apache.oozie.command.CommandException;
+import org.apache.oozie.command.bundle.BundleSLAAlertsDisableXCommand;
+import org.apache.oozie.command.bundle.BundleSLAAlertsEnableXCommand;
+import org.apache.oozie.command.bundle.BundleSLAChangeXCommand;
+import org.apache.oozie.command.bundle.BulkBundleXCommand;
 import org.apache.oozie.command.bundle.BundleJobChangeXCommand;
 import org.apache.oozie.command.bundle.BundleJobResumeXCommand;
 import org.apache.oozie.command.bundle.BundleJobSuspendXCommand;
@@ -47,15 +49,22 @@ import org.apache.oozie.command.bundle.BundleKillXCommand;
 import org.apache.oozie.command.bundle.BundleRerunXCommand;
 import org.apache.oozie.command.bundle.BundleStartXCommand;
 import org.apache.oozie.command.bundle.BundleSubmitXCommand;
+import org.apache.oozie.command.OperationType;
+import org.apache.oozie.executor.jpa.BundleJobQueryExecutor;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.DagXLogInfoService;
-import org.apache.oozie.service.Services;
-import org.apache.oozie.service.XLogStreamingService;
 import org.apache.oozie.util.DateUtils;
+import org.apache.oozie.util.JobsFilterUtils;
+import org.apache.oozie.util.JobUtils;
+import org.apache.oozie.util.XLogAuditFilter;
+import org.apache.oozie.util.XLogFilter;
+import org.apache.oozie.util.XLogUserFilterParam;
 import org.apache.oozie.util.ParamChecker;
 import org.apache.oozie.util.XLog;
-import org.apache.oozie.util.XLogStreamer;
 
 import com.google.common.annotations.VisibleForTesting;
+
+import javax.servlet.ServletException;
 
 public class BundleEngine extends BaseEngine {
     /**
@@ -237,24 +246,57 @@ public class BundleEngine extends BaseEngine {
         }
     }
 
-    /* (non-Javadoc)
-     * @see org.apache.oozie.BaseEngine#streamLog(java.lang.String, java.io.Writer)
-     */
     @Override
-    public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException, BundleEngineException {
-        XLogStreamer.Filter filter = new XLogStreamer.Filter();
-        filter.setParameter(DagXLogInfoService.JOB, jobId);
+    public void streamLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BundleEngineException {
+        streamJobLog(jobId, writer, params, LOG_TYPE.LOG);
+    }
 
-        BundleJobBean job;
+    @Override
+    public void streamErrorLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BundleEngineException {
+        streamJobLog(jobId, writer, params, LOG_TYPE.ERROR_LOG);
+    }
+
+    @Override
+    public void streamAuditLog(String jobId, Writer writer, Map<String, String[]> params) throws IOException,
+            BundleEngineException {
         try {
-            job = new BundleJobXCommand(jobId).call();
+            streamJobLog(new XLogAuditFilter(new XLogUserFilterParam(params)), jobId, writer, params, LOG_TYPE.AUDIT_LOG);
         }
-        catch (CommandException ex) {
-            throw new BundleEngineException(ex);
+        catch (CommandException e) {
+            throw new IOException(e);
         }
+    }
 
-        Services.get().get(XLogStreamingService.class)
-                .streamLog(filter, job.getCreatedTime(), new Date(), writer, params);
+    private void streamJobLog(String jobId, Writer writer, Map<String, String[]> params, LOG_TYPE logType)
+            throws IOException, BundleEngineException {
+        try {
+            streamJobLog(new XLogFilter(new XLogUserFilterParam(params)), jobId, writer, params, logType);
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
+    }
+
+    private void streamJobLog(XLogFilter filter, String jobId, Writer writer, Map<String, String[]> params, LOG_TYPE logType)
+            throws IOException, BundleEngineException {
+        try {
+            BundleJobBean job;
+            filter.setParameter(DagXLogInfoService.JOB, jobId);
+            job = new BundleJobXCommand(jobId).call();
+            Date lastTime = null;
+            if (job.isTerminalStatus()) {
+                lastTime = job.getLastModifiedTime();
+            }
+            if (lastTime == null) {
+                lastTime = new Date();
+            }
+            fetchLog(filter, job.getCreatedTime(), lastTime, writer, params, logType);
+        }
+        catch (Exception ex) {
+            throw new IOException(ex);
+        }
     }
 
     /* (non-Javadoc)
@@ -289,16 +331,6 @@ public class BundleEngine extends BaseEngine {
         }
     }
 
-    private static final Set<String> FILTER_NAMES = new HashSet<String>();
-
-    static {
-        FILTER_NAMES.add(OozieClient.FILTER_USER);
-        FILTER_NAMES.add(OozieClient.FILTER_NAME);
-        FILTER_NAMES.add(OozieClient.FILTER_GROUP);
-        FILTER_NAMES.add(OozieClient.FILTER_STATUS);
-        FILTER_NAMES.add(OozieClient.FILTER_ID);
-    }
-
     /**
      * Get bundle jobs
      *
@@ -328,48 +360,18 @@ public class BundleEngine extends BaseEngine {
      */
     @VisibleForTesting
     Map<String, List<String>> parseFilter(String filter) throws BundleEngineException {
-        Map<String, List<String>> map = new HashMap<String, List<String>>();
-        if (filter != null) {
-            StringTokenizer st = new StringTokenizer(filter, ";");
-            while (st.hasMoreTokens()) {
-                String token = st.nextToken();
-                if (token.contains("=")) {
-                    String[] pair = token.split("=");
-                    if (pair.length != 2) {
-                        throw new BundleEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
-                    }
-                    if (!FILTER_NAMES.contains(pair[0])) {
-                        throw new BundleEngineException(ErrorCode.E0420, filter, XLog.format("invalid name [{0}]",
-                                pair[0]));
-                    }
-                    if (pair[0].equals("status")) {
-                        try {
-                            Job.Status.valueOf(pair[1]);
-                        }
-                        catch (IllegalArgumentException ex) {
-                            throw new BundleEngineException(ErrorCode.E0420, filter, XLog.format(
-                                    "invalid status [{0}]", pair[1]));
-                        }
-                    }
-                    List<String> list = map.get(pair[0]);
-                    if (list == null) {
-                        list = new ArrayList<String>();
-                        map.put(pair[0], list);
-                    }
-                    list.add(pair[1]);
-                }
-                else {
-                    throw new BundleEngineException(ErrorCode.E0420, filter, "elements must be name=value pairs");
-                }
-            }
+        try {
+            return JobsFilterUtils.parseFilter(filter);
         }
-        return map;
+        catch (ServletException ex) {
+            throw new BundleEngineException(ErrorCode.E0420, filter, ex.getMessage());
+        }
     }
 
     /**
      * Get bulk job response
      *
-     * @param filter the filter string
+     * @param bulkFilter the filter string
      * @param start start location for paging
      * @param len total length to get
      * @return bulk job info
@@ -389,7 +391,7 @@ public class BundleEngine extends BaseEngine {
      * Parse filter string to a map with key = filter name and values = filter values
      * Allowed keys are defined as constants on top
      *
-     * @param filter the filter string
+     * @param bulkParams the filter string
      * @return filter key-value pair map
      * @throws BundleEngineException thrown if failed to parse filter string
      */
@@ -460,5 +462,129 @@ public class BundleEngine extends BaseEngine {
             }
         }
         return bulkFilter;
+    }
+
+    /**
+     * Return the status for a Job ID
+     *
+     * @param jobId job Id.
+     * @return the job's status
+     * @throws BundleEngineException thrown if the job's status could not be obtained
+     */
+    @Override
+    public String getJobStatus(String jobId) throws BundleEngineException {
+        try {
+            BundleJobBean bundleJob = BundleJobQueryExecutor.getInstance().get(
+                    BundleJobQueryExecutor.BundleJobQuery.GET_BUNDLE_JOB_STATUS, jobId);
+            return bundleJob.getStatusStr();
+        }
+        catch (JPAExecutorException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
+    @Override
+    public void enableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        try {
+            new BundleSLAAlertsEnableXCommand(id, actions, dates, childIds).call();
+        }
+        catch (CommandException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
+    @Override
+    public void disableSLAAlert(String id, String actions, String dates, String childIds) throws BaseEngineException {
+        try {
+            new BundleSLAAlertsDisableXCommand(id, actions, dates, childIds).call();
+        }
+        catch (CommandException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
+    @Override
+    public void changeSLA(String id, String actions, String dates, String childIds, String newParams)
+            throws BaseEngineException {
+        Map<String, String> slaNewParams = null;
+        try {
+
+            if (newParams != null) {
+                slaNewParams = JobUtils.parseChangeValue(newParams);
+            }
+            new BundleSLAChangeXCommand(id, actions, dates, childIds, slaNewParams).call();
+        }
+        catch (CommandException e) {
+            throw new BundleEngineException(e);
+        }
+    }
+
+    /**
+     * return a list of killed Bundle job
+     *
+     * @param filter, the filter string for which the bundle jobs are killed
+     * @param start, the starting index for bundle jobs
+     * @param len, maximum number of jobs to be killed
+     * @return the list of jobs being killed
+     * @throws BundleEngineException thrown if one or more of the jobs cannot be killed
+     */
+    public BundleJobInfo killJobs(String filter, int start, int len) throws BundleEngineException {
+        try {
+            Map<String, List<String>> filterList = parseFilter(filter);
+            BundleJobInfo bundleJobInfo = new BulkBundleXCommand(filterList, start, len, OperationType.Kill).call();
+            if (bundleJobInfo == null) {
+                return new BundleJobInfo(new ArrayList<BundleJobBean>(), 0, 0, 0);
+            }
+            return bundleJobInfo;
+        }
+        catch (CommandException ex) {
+            throw new BundleEngineException(ex);
+        }
+    }
+
+    /**
+     * return a list of suspended Bundle job
+     *
+     * @param filter, the filter string for which the bundle jobs are suspended
+     * @param start, the starting index for bundle jobs
+     * @param len, maximum number of jobs to be suspended
+     * @return the list of jobs being suspended
+     * @throws BundleEngineException thrown if one or more of the jobs cannot be suspended
+     */
+    public BundleJobInfo suspendJobs(String filter, int start, int len) throws BundleEngineException {
+        try {
+            Map<String, List<String>> filterList = parseFilter(filter);
+            BundleJobInfo bundleJobInfo = new BulkBundleXCommand(filterList, start, len, OperationType.Suspend).call();
+            if (bundleJobInfo == null) {
+                return new BundleJobInfo(new ArrayList<BundleJobBean>(), 0, 0, 0);
+            }
+            return bundleJobInfo;
+        }
+        catch (CommandException ex) {
+            throw new BundleEngineException(ex);
+        }
+    }
+
+    /**
+     * return a list of resumed Bundle job
+     *
+     * @param filter, the filter string for which the bundle jobs are resumed
+     * @param start, the starting index for bundle jobs
+     * @param len, maximum number of jobs to be resumed
+     * @return the list of jobs being resumed
+     * @throws BundleEngineException thrown if one or more of the jobs cannot be resumed
+     */
+    public BundleJobInfo resumeJobs(String filter, int start, int len) throws BundleEngineException {
+        try {
+            Map<String, List<String>> filterList = parseFilter(filter);
+            BundleJobInfo bundleJobInfo = new BulkBundleXCommand(filterList, start, len, OperationType.Resume).call();
+            if (bundleJobInfo == null) {
+                return new BundleJobInfo(new ArrayList<BundleJobBean>(), 0, 0, 0);
+            }
+            return bundleJobInfo;
+        }
+        catch (CommandException ex) {
+            throw new BundleEngineException(ex);
+        }
     }
 }

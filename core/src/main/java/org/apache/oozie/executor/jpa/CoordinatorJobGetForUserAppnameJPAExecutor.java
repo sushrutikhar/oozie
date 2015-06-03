@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import javax.persistence.EntityManager;
@@ -23,6 +24,7 @@ import javax.persistence.Query;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.util.ParamChecker;
+import org.apache.oozie.util.XLog;
 
 /**
  * DB query executor to fetch columns 'user' and 'appName' from Coordinator Job table
@@ -41,8 +43,9 @@ public class CoordinatorJobGetForUserAppnameJPAExecutor implements JPAExecutor<C
      *
      * @see org.apache.oozie.executor.jpa.JPAExecutor#getName()
      */
+    @Override
     public String getName() {
-        return "CoordJobGetForUserAppnameJPAExecutor";
+        return "CoordinatorJobGetForUserAppnameJPAExecutor";
     }
 
     /*

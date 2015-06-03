@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import java.sql.Timestamp;
@@ -46,7 +47,7 @@ public class CoordActionGetForStartJPAExecutor implements JPAExecutor<Coordinato
      */
     @Override
     public String getName() {
-        return "CoordActionGetForStartExecutor";
+        return "CoordActionGetForStartJPAExecutor";
     }
 
     /* (non-Javadoc)

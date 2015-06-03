@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import java.io.BufferedReader;
@@ -25,6 +26,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
 import java.util.Set;
 
 import org.apache.hadoop.conf.Configuration;
@@ -36,6 +40,9 @@ import org.apache.oozie.ErrorCode;
 import org.apache.oozie.WorkflowJobBean;
 import org.apache.oozie.client.XOozieClient;
 import org.apache.oozie.executor.jpa.BundleJobGetJPAExecutor;
+import org.apache.oozie.executor.jpa.CoordJobInfoGetJPAExecutor;
+import org.apache.oozie.executor.jpa.BundleJobInfoGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowsJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowJobQueryExecutor;
@@ -107,7 +114,7 @@ public class AuthorizationService implements Service {
                                                CONF_SECURITY_ENABLED, false);
         if (authorizationEnabled) {
             log.info("Oozie running with authorization enabled");
-            useDefaultGroupAsAcl = Services.get().getConf().getBoolean(CONF_DEFAULT_GROUP_AS_ACL, false);
+            useDefaultGroupAsAcl = ConfigurationService.getBoolean(CONF_DEFAULT_GROUP_AS_ACL);
             String[] str = getTrimmedStrings(Services.get().getConf().get(CONF_ADMIN_GROUPS));
             if (str.length > 0) {
                 log.info("Admin users will be checked against the defined admin groups");
@@ -501,6 +508,102 @@ public class AuthorizationService implements Service {
         }
     }
 
+    /**
+     * Check if the user+group is authorized to operate on the specified jobs. <p/> Checks if the user is a super-user or
+     * the one who started the jobs. <p/> Read operations are allowed to all users.
+     *
+     * @param user user name.
+     * @param filter filter used to select jobs
+     * @param start starting index of the jobs in DB
+     * @param len maximum amount of jbos to select
+     * @param write indicates if the check is for read or write job tasks.
+     * @throws AuthorizationException thrown if the user is not authorized for the job.
+     */
+    public void authorizeForJobs(String user, Map<String, List<String>> filter, String jobType,
+                                 int start, int len, boolean write) throws AuthorizationException {
+        if (authorizationEnabled && write && !isAdmin(user)) {
+            try {
+                // handle workflow jobs
+                if (jobType.equals("wf")) {
+                    List<WorkflowJobBean> jobBeans = new ArrayList<WorkflowJobBean>();
+                    JPAService jpaService = Services.get().get(JPAService.class);
+                    if (jpaService != null) {
+                        try {
+                            jobBeans = jpaService.execute(new WorkflowsJobGetJPAExecutor(
+                                    filter, start, len)).getWorkflows();
+                        }
+                        catch (JPAExecutorException je) {
+                            throw new AuthorizationException(je);
+                        }
+                    }
+                    else {
+                        throw new AuthorizationException(ErrorCode.E0610);
+                    }
+                    for (WorkflowJobBean jobBean : jobBeans) {
+                        if (jobBean != null && !jobBean.getUser().equals(user)) {
+                            if (!isUserInAcl(user, jobBean.getGroup())) {
+                                    incrCounter(INSTR_FAILED_AUTH_COUNTER, 1);
+                                throw new AuthorizationException(ErrorCode.E0508, user, jobBean.getId());
+                            }
+                        }
+                    }
+                }
+                // handle bundle jobs
+                else if (jobType.equals("bundle")) {
+                    List<BundleJobBean> jobBeans = new ArrayList<BundleJobBean>();
+                    JPAService jpaService = Services.get().get(JPAService.class);
+                    if (jpaService != null) {
+                        try {
+                            jobBeans = jpaService.execute(new BundleJobInfoGetJPAExecutor(
+                                    filter, start, len)).getBundleJobs();
+                        }
+                        catch (JPAExecutorException je) {
+                            throw new AuthorizationException(je);
+                        }
+                    }
+                    else {
+                        throw new AuthorizationException(ErrorCode.E0610);
+                    }
+                    for (BundleJobBean jobBean : jobBeans){
+                        if (jobBean != null && !jobBean.getUser().equals(user)) {
+                            if (!isUserInAcl(user, jobBean.getGroup())) {
+                                incrCounter(INSTR_FAILED_AUTH_COUNTER, 1);
+                                throw new AuthorizationException(ErrorCode.E0509, user, jobBean.getId());
+                            }
+                        }
+                    }
+                }
+                // handle coordinator jobs
+                else {
+                    List<CoordinatorJobBean> jobBeans = new ArrayList<CoordinatorJobBean>();
+                    JPAService jpaService = Services.get().get(JPAService.class);
+                    if (jpaService != null) {
+                        try {
+                            jobBeans = jpaService.execute(new CoordJobInfoGetJPAExecutor(
+                                    filter, start, len)).getCoordJobs();
+                        }
+                        catch (JPAExecutorException je) {
+                            throw new AuthorizationException(je);
+                        }
+                    }
+                    else {
+                        throw new AuthorizationException(ErrorCode.E0610);
+                    }
+                    for (CoordinatorJobBean jobBean : jobBeans) {
+                        if (jobBean != null && !jobBean.getUser().equals(user)) {
+                            if (!isUserInAcl(user, jobBean.getGroup())) {
+                                incrCounter(INSTR_FAILED_AUTH_COUNTER, 1);
+                                throw new AuthorizationException(ErrorCode.E0509, user, jobBean.getId());
+                            }
+                        }
+                    }
+                }
+            }
+            catch (IOException ex) {
+                throw new AuthorizationException(ErrorCode.E0501, ex.getMessage(), ex);
+            }
+        }
+    }
     /**
      * Convenience method for instrumentation counters.
      *

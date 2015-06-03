@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.executor.jpa;
 
 import java.util.List;
@@ -48,7 +49,7 @@ public class CoordJobsGetFromParentIdJPAExecutor implements JPAExecutor<List<Str
      */
     @Override
     public String getName() {
-        return "CoordinatorJobsGetFromParentIdJPAExecutor";
+        return "CoordJobsGetFromParentIdJPAExecutor";
     }
 
     /* (non-Javadoc)

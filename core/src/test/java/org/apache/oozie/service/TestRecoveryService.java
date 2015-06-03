@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.hadoop.conf.Configuration;
@@ -55,10 +56,10 @@ import org.apache.oozie.executor.jpa.CoordJobGetJPAExecutor;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.executor.jpa.WorkflowActionGetJPAExecutor;
 import org.apache.oozie.executor.jpa.WorkflowActionInsertJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor;
 import org.apache.oozie.executor.jpa.WorkflowJobGetJPAExecutor;
+import org.apache.oozie.executor.jpa.WorkflowActionQueryExecutor.WorkflowActionQuery;
 import org.apache.oozie.service.RecoveryService.RecoveryRunnable;
-import org.apache.oozie.store.CoordinatorStore;
-import org.apache.oozie.store.StoreException;
 import org.apache.oozie.store.WorkflowStore;
 import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.util.DateUtils;
@@ -94,7 +95,7 @@ public class TestRecoveryService extends XDataTestCase {
         setSystemProperty(SchemaService.WF_CONF_EXT_SCHEMAS, "wf-ext-schema.xsd");
         services = new Services();
         services.init();
-        services.get(ActionService.class).register(ForTestingActionExecutor.class);
+        services.get(ActionService.class).registerAndInitExecutor(ForTestingActionExecutor.class);
 
     }
 
@@ -209,14 +210,21 @@ public class TestRecoveryService extends XDataTestCase {
      */
     public void testWorkflowActionRecoveryUserRetry() throws Exception {
         final JPAService jpaService = Services.get().get(JPAService.class);
-        WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
-        WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.USER_RETRY);
+        WorkflowJobBean job1 = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action1 = this.addRecordToWfActionTable(job1.getId(), "1", WorkflowAction.Status.USER_RETRY);
+
+        WorkflowJobBean job2 = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action2 = createWorkflowActionSetPending(job2.getId(), WorkflowAction.Status.USER_RETRY);
+        //Default recovery created time is 7 days.
+        action2.setCreatedTime(new Date(new Date().getTime() - 8 * RecoveryService.ONE_DAY_MILLISCONDS));
+        WorkflowActionInsertJPAExecutor actionInsertCmd = new WorkflowActionInsertJPAExecutor(action2);
+        jpaService.execute(actionInsertCmd);
 
         Runnable recoveryRunnable = new RecoveryRunnable(0, 60, 60);
         recoveryRunnable.run();
         sleep(3000);
 
-        final WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+        final WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action1.getId());
 
         waitFor(5000, new Predicate() {
             public boolean evaluate() throws Exception {
@@ -224,18 +232,23 @@ public class TestRecoveryService extends XDataTestCase {
                 return a.getExternalId() != null;
             }
         });
-        action = jpaService.execute(wfActionGetCmd);
-        assertNotNull(action.getExternalId());
-        assertEquals(WorkflowAction.Status.RUNNING, action.getStatus());
+        action1 = jpaService.execute(wfActionGetCmd);
+        assertNotNull(action1.getExternalId());
+        assertEquals(WorkflowAction.Status.RUNNING, action1.getStatus());
 
-        ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(job, action, false, false);
+        //Action 2 should not get recover as it's created time is older then 7 days
+        action2= WorkflowActionQueryExecutor.getInstance().get(WorkflowActionQuery.GET_ACTION, action2.getId());
+        assertNull(action2.getExternalId());
+        assertEquals(WorkflowAction.Status.USER_RETRY, action2.getStatus());
+
+        ActionExecutorContext context = new ActionXCommand.ActionExecutorContext(job1, action1, false, false);
         MapReduceActionExecutor actionExecutor = new MapReduceActionExecutor();
-        JobConf conf = actionExecutor.createBaseHadoopConf(context, XmlUtils.parseXml(action.getConf()));
+        JobConf conf = actionExecutor.createBaseHadoopConf(context, XmlUtils.parseXml(action1.getConf()));
         String user = conf.get("user.name");
         String group = conf.get("group.name");
         JobClient jobClient = Services.get().get(HadoopAccessorService.class).createJobClient(user, conf);
 
-        String launcherId = action.getExternalId();
+        String launcherId = action1.getExternalId();
 
         final RunningJob launcherJob = jobClient.getJob(JobID.forName(launcherId));
 
@@ -255,18 +268,10 @@ public class TestRecoveryService extends XDataTestCase {
      * @throws Exception
      */
     public void testBundleRecoveryCoordCreate() throws Exception {
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
         final BundleActionBean bundleAction;
         final BundleJobBean bundle;
-        store.beginTrx();
-        try {
-            bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
-            bundleAction = addRecordToBundleActionTable(bundle.getId(), "coord1", 1, Job.Status.PREP);
-            store.commitTrx();
-        }
-        finally {
-            store.closeTrx();
-        }
+        bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
+        bundleAction = addRecordToBundleActionTable(bundle.getId(), "coord1", 1, Job.Status.PREP);
         final JPAService jpaService = Services.get().get(JPAService.class);
 
         sleep(3000);
@@ -304,20 +309,12 @@ public class TestRecoveryService extends XDataTestCase {
      * @throws Exception
      */
     public void testBundleRecoveryCoordExists() throws Exception {
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
         final BundleActionBean bundleAction;
         final BundleJobBean bundle;
         final CoordinatorJob coord;
-        store.beginTrx();
-        try {
-            bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
-            coord = addRecordToCoordJobTable(Job.Status.PREP, false, false);
-            bundleAction = addRecordToBundleActionTable(bundle.getId(), coord.getId(), "coord1", 1, Job.Status.PREP);
-            store.commitTrx();
-        }
-        finally {
-            store.closeTrx();
-        }
+        bundle = addRecordToBundleJobTable(Job.Status.RUNNING, false);
+        coord = addRecordToCoordJobTable(Job.Status.PREP, false, false);
+        bundleAction = addRecordToBundleActionTable(bundle.getId(), coord.getId(), "coord1", 1, Job.Status.PREP);
         final JPAService jpaService = Services.get().get(JPAService.class);
 
         sleep(3000);
@@ -347,20 +344,12 @@ public class TestRecoveryService extends XDataTestCase {
         final int actionNum = 1;
         final String actionId = jobId + "@" + actionNum;
         final CoordinatorEngine ce = new CoordinatorEngine(getTestUser());
-        CoordinatorStore store = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store.beginTrx();
-        try {
-            createTestCaseSubDir("one-op");
-            createTestCaseSubDir("one-op", "lib");
-            createTestCaseSubDir("workflows");
-            createTestCaseSubDir("in");
-            addRecordToJobTable(jobId, store, getTestCaseDir());
-            addRecordToActionTable(jobId, actionNum, actionId, store, getTestCaseDir());
-            store.commitTrx();
-        }
-        finally {
-            store.closeTrx();
-        }
+        createTestCaseSubDir("one-op");
+        createTestCaseSubDir("one-op", "lib");
+        createTestCaseSubDir("workflows");
+        createTestCaseSubDir("in");
+        addRecordToJobTable(jobId, getTestCaseDir());
+        addRecordToActionTable(jobId, actionNum, actionId, getTestCaseDir());
 
         sleep(3000);
         Runnable recoveryRunnable = new RecoveryRunnable(0, 1,1);
@@ -373,9 +362,7 @@ public class TestRecoveryService extends XDataTestCase {
             }
         });
 
-        CoordinatorStore store2 = Services.get().get(StoreService.class).getStore(CoordinatorStore.class);
-        store2.beginTrx();
-        CoordinatorActionBean action = store2.getCoordinatorAction(actionId, false);
+        CoordinatorActionBean action = getCoordinatorAction(actionId);
         if (action.getStatus() == CoordinatorAction.Status.RUNNING
                 || action.getStatus() == CoordinatorAction.Status.SUCCEEDED) {
 
@@ -383,8 +370,6 @@ public class TestRecoveryService extends XDataTestCase {
         else {
             fail();
         }
-        store2.commitTrx();
-        store2.closeTrx();
     }
 
     /**
@@ -649,7 +634,8 @@ public class TestRecoveryService extends XDataTestCase {
         }
     }
 
-    private void addRecordToActionTable(String jobId, int actionNum, String actionId, CoordinatorStore store, String baseDir) throws StoreException, IOException {
+    private void addRecordToActionTable(String jobId, int actionNum, String actionId, String baseDir)
+            throws Exception {
         CoordinatorActionBean action = new CoordinatorActionBean();
         action.setJobId(jobId);
         action.setId(actionId);
@@ -715,7 +701,7 @@ public class TestRecoveryService extends XDataTestCase {
         createdConf = conf.toXmlString(false);
 
         action.setCreatedConf(createdConf);
-        store.insertCoordinatorAction(action);
+        addRecordToCoordActionTable(action, null);
         String content = "<workflow-app xmlns='uri:oozie:workflow:0.1'  xmlns:sla='uri:oozie:sla:0.1' name='one-op-wf'>";
         content += "<start to='fs1'/><action name='fs1'><fs><mkdir path='/tmp'/></fs><ok to='end'/><error to='end'/></action>";
         content += "<end name='end' /></workflow-app>";
@@ -746,7 +732,7 @@ public class TestRecoveryService extends XDataTestCase {
         new File(dir, "_SUCCESS").mkdirs();
     }
 
-    private void addRecordToJobTable(String jobId, CoordinatorStore store, String baseDir) throws StoreException {
+    private void addRecordToJobTable(String jobId, String baseDir) throws Exception {
         CoordinatorJobBean coordJob = new CoordinatorJobBean();
         coordJob.setId(jobId);
         coordJob.setAppName("testApp");
@@ -814,11 +800,10 @@ public class TestRecoveryService extends XDataTestCase {
         }
 
         try {
-            store.insertCoordinatorJob(coordJob);
+            addRecordToCoordJobTable(coordJob);
         }
-        catch (StoreException se) {
+        catch (Exception se) {
             se.printStackTrace();
-            store.rollbackTrx();
             fail("Unable to insert the test job record to table");
             throw se;
         }
@@ -853,6 +838,7 @@ public class TestRecoveryService extends XDataTestCase {
         action.setType("map-reduce");
         action.setTransition("transition");
         action.setStatus(status);
+        action.setCreatedTime(new Date());
         action.setStartTime(new Date());
         action.setEndTime(new Date());
         action.setLastCheckTime(new Date());

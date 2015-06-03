@@ -6,24 +6,22 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.oozie.store.StoreException;
-import org.apache.oozie.service.Service;
-import org.apache.oozie.service.Services;
 import org.apache.oozie.store.SLAStore;
 import org.apache.oozie.store.Store;
 import org.apache.oozie.store.WorkflowStore;
-import org.apache.oozie.store.CoordinatorStore;
 import org.apache.oozie.ErrorCode;
 import javax.persistence.EntityManager;
 
@@ -42,15 +40,8 @@ public class StoreService implements Service {
         if (WorkflowStore.class.equals(klass)) {
             return (S) Services.get().get(WorkflowStoreService.class).create();
         }
-        else {
-            if (CoordinatorStore.class.equals(klass)) {
-                return (S) Services.get().get(CoordinatorStoreService.class).create();
-            }
-            else {
-                if (SLAStore.class.equals(klass)) {
-                    return (S) Services.get().get(SLAStoreService.class).create();
-                }
-            }
+        else if (SLAStore.class.equals(klass)) {
+            return (S) Services.get().get(SLAStoreService.class).create();
         }
         // to do add checks for other stores - coordinator and SLA stores
         throw new StoreException(ErrorCode.E0607, " can not get store StoreService.getStore(Class)", "");
@@ -66,15 +57,8 @@ public class StoreService implements Service {
         if (WorkflowStore.class.equals(klass)) {
             return (S) Services.get().get(WorkflowStoreService.class).create(store);
         }
-        else {
-            if (CoordinatorStore.class.equals(klass)) {
-                return (S) Services.get().get(CoordinatorStoreService.class).create(store);
-            }
-            else {
-                if (SLAStore.class.equals(klass)) {
-                    return (S) Services.get().get(SLAStoreService.class).create(store);
-                }
-            }
+        else if (SLAStore.class.equals(klass)) {
+            return (S) Services.get().get(SLAStoreService.class).create(store);
         }
         throw new StoreException(ErrorCode.E0607, " StoreService.getStore(Class, store)", "");
     }

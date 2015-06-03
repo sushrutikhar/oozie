@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.hadoop.conf.Configuration;
@@ -66,6 +67,8 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
     public static final String NODE_DEF_VERSION_1 = "_oozie_inst_v_1";
     public static final String CONF_NODE_DEF_VERSION = CONF_PREFIX + "node.def.version";
 
+    public static final String USER_ERROR_CODE_ALL = "ALL";
+
     /**
      * Delegation method used by the Action and Decision {@link NodeHandler} on start. <p/> This method provides the
      * necessary information to create ActionExecutors.
@@ -90,7 +93,6 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
 
         if (!skipAction) {
             String nodeConf = context.getNodeDef().getConf();
-            String executionPath = context.getExecutionPath();
 
             if (actionType == null) {
                 try {
@@ -104,12 +106,14 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
             }
             log.debug(" Creating action for node [{0}]", nodeName);
             action.setType(actionType);
-            action.setExecutionPath(executionPath);
             action.setConf(nodeConf);
             action.setLogToken(((WorkflowJobBean) context.getTransientVar(WORKFLOW_BEAN)).getLogToken());
             action.setStatus(WorkflowAction.Status.PREP);
             action.setJobId(jobId);
         }
+
+        String executionPath = context.getExecutionPath();
+        action.setExecutionPath(executionPath);
         action.setCred(context.getNodeDef().getCred());
         log.debug("Setting action for cred: '"+context.getNodeDef().getCred() +
         		"', name: '"+ context.getNodeDef().getName() + "'");
@@ -135,8 +139,7 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
     }
 
     private static int getUserRetryInterval(NodeHandler.Context context) throws WorkflowException {
-        Configuration conf = Services.get().get(ConfigurationService.class).getConf();
-        int ret = conf.getInt(CONF_USER_RETRY_INTEVAL, 5);
+        int ret = ConfigurationService.getInt(CONF_USER_RETRY_INTEVAL);
         String userRetryInterval = context.getNodeDef().getUserRetryInterval();
 
         if (!userRetryInterval.equals("null")) {
@@ -152,8 +155,7 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
 
     private static int getUserRetryMax(NodeHandler.Context context) throws WorkflowException {
         XLog log = XLog.getLog(LiteWorkflowStoreService.class);
-        Configuration conf = Services.get().get(ConfigurationService.class).getConf();
-        int ret = conf.getInt(CONF_USER_RETRY_MAX, 0);
+        int ret = ConfigurationService.getInt(CONF_USER_RETRY_MAX);
         int max = ret;
         String userRetryMax = context.getNodeDef().getUserRetryMax();
 
@@ -181,11 +183,10 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
      * @return set of error code user-retry is allowed for
      */
     public static Set<String> getUserRetryErrorCode() {
-        Configuration conf = Services.get().get(ConfigurationService.class).getConf();
         // eliminating whitespaces in the error codes value specification
-        String errorCodeString = conf.get(CONF_USER_RETRY_ERROR_CODE).replaceAll("\\s+", "");
+        String errorCodeString = ConfigurationService.get(CONF_USER_RETRY_ERROR_CODE).replaceAll("\\s+", "");
         Collection<String> strings = StringUtils.getStringCollection(errorCodeString);
-        String errorCodeExtString = conf.get(CONF_USER_RETRY_ERROR_CODE_EXT).replaceAll("\\s+", "");
+        String errorCodeExtString = ConfigurationService.get(CONF_USER_RETRY_ERROR_CODE_EXT).replaceAll("\\s+", "");
         Collection<String> extra = StringUtils.getStringCollection(errorCodeExtString);
         Set<String> set = new HashSet<String>();
         set.addAll(strings);
@@ -200,8 +201,7 @@ public abstract class LiteWorkflowStoreService extends WorkflowStoreService {
      * @throws WorkflowException thrown if there was an error parsing the action configuration.
     */
     public static String getNodeDefDefaultVersion() throws WorkflowException {
-        Configuration conf = Services.get().get(ConfigurationService.class).getConf();
-        String ret = conf.get(CONF_NODE_DEF_VERSION);
+        String ret = ConfigurationService.get(CONF_NODE_DEF_VERSION);
         if (ret == null) {
             ret = NODE_DEF_VERSION_1;
         }

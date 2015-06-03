@@ -15,13 +15,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.sla.service;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
 import org.apache.oozie.client.event.JobEvent.EventStatus;
 import org.apache.oozie.executor.jpa.JPAExecutorException;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.EventHandlerService;
 import org.apache.oozie.service.SchedulerService;
 import org.apache.oozie.service.Service;
@@ -30,7 +35,9 @@ import org.apache.oozie.service.Services;
 import org.apache.oozie.sla.SLACalculator;
 import org.apache.oozie.sla.SLACalculatorMemory;
 import org.apache.oozie.sla.SLARegistrationBean;
+import org.apache.oozie.util.Pair;
 import org.apache.oozie.util.XLog;
+
 import com.google.common.annotations.VisibleForTesting;
 
 public class SLAService implements Service {
@@ -41,6 +48,11 @@ public class SLAService implements Service {
     public static final String CONF_ALERT_EVENTS = CONF_PREFIX + "alert.events";
     public static final String CONF_EVENTS_MODIFIED_AFTER = CONF_PREFIX + "events.modified.after";
     public static final String CONF_JOB_EVENT_LATENCY = CONF_PREFIX + "job.event.latency";
+    //Time interval, in seconds, at which SLA Worker will be scheduled to run
+    public static final String CONF_SLA_CHECK_INTERVAL = CONF_PREFIX + "check.interval";
+    public static final String CONF_SLA_CHECK_INITIAL_DELAY = CONF_PREFIX + "check.initial.delay";
+    public static final String CONF_SLA_CALC_LOCK_TIMEOUT = CONF_PREFIX + "oozie.sla.calc.default.lock.timeout";
+    public static final String CONF_SLA_HISTORY_PURGE_INTERVAL = CONF_PREFIX + "history.purge.interval";
 
     private static SLACalculator calcImpl;
     private static boolean slaEnabled = false;
@@ -50,8 +62,8 @@ public class SLAService implements Service {
     public void init(Services services) throws ServiceException {
         try {
             Configuration conf = services.getConf();
-            Class<? extends SLACalculator> calcClazz = (Class<? extends SLACalculator>) conf.getClass(
-                    CONF_CALCULATOR_IMPL, null);
+            Class<? extends SLACalculator> calcClazz = (Class<? extends SLACalculator>) ConfigurationService.getClass(
+                    conf, CONF_CALCULATOR_IMPL);
             calcImpl = calcClazz == null ? new SLACalculatorMemory() : (SLACalculator) calcClazz.newInstance();
             calcImpl.init(conf);
             eventHandler = Services.get().get(EventHandlerService.class);
@@ -66,7 +78,10 @@ public class SLAService implements Service {
 
             Runnable slaThread = new SLAWorker(calcImpl);
             // schedule runnable by default every 30 sec
-            services.get(SchedulerService.class).schedule(slaThread, 10, 30, SchedulerService.Unit.SEC);
+            int slaCheckInterval = ConfigurationService.getInt(conf, CONF_SLA_CHECK_INTERVAL);
+            int slaCheckInitialDelay = ConfigurationService.getInt(conf, CONF_SLA_CHECK_INITIAL_DELAY);
+            services.get(SchedulerService.class).schedule(slaThread, slaCheckInitialDelay, slaCheckInterval,
+                    SchedulerService.Unit.SEC);
             slaEnabled = true;
             LOG.info("SLAService initialized with impl [{0}] capacity [{1}]", calcImpl.getClass().getName(),
                     conf.get(SLAService.CONF_CAPACITY));
@@ -90,11 +105,11 @@ public class SLAService implements Service {
         return slaEnabled;
     }
 
+    @VisibleForTesting
     public SLACalculator getSLACalculator() {
         return calcImpl;
     }
 
-    @VisibleForTesting
     public void runSLAWorker() {
         new SLAWorker(calcImpl).run();
     }
@@ -168,4 +183,94 @@ public class SLAService implements Service {
         calcImpl.removeRegistration(jobId);
     }
 
+    /**
+     * Enable jobs sla alert.
+     *
+     * @param jobIds the job ids
+     * @param isParentJob, if jobIds are parent job
+     * @return true, if successful
+     * @throws ServiceException the service exception
+     */
+    public boolean enableAlert(List<String> jobIds) throws ServiceException {
+        try {
+            return calcImpl.enableAlert(jobIds);
+        }
+        catch (JPAExecutorException jpe) {
+            LOG.error("Exception while updating SLA alerting for Job [{0}]", jobIds.get(0));
+            throw new ServiceException(jpe);
+        }
+    }
+
+    /**
+     * Enable child jobs sla alert.
+     *
+     * @param jobIds the parent job ids
+     * @param isParentJob, if jobIds are parent job
+     * @return true, if successful
+     * @throws ServiceException the service exception
+     */
+    public boolean enableChildJobAlert(List<String> parentJobIds) throws ServiceException {
+        try {
+            return calcImpl.enableChildJobAlert(parentJobIds);
+        }
+        catch (JPAExecutorException jpe) {
+            LOG.error("Exception while updating SLA alerting for Job [{0}]", parentJobIds.get(0));
+            throw new ServiceException(jpe);
+        }
+    }
+
+    /**
+     * Disable jobs Sla alert.
+     *
+     * @param jobIds the job ids
+     * @param isParentJob, if jobIds are parent job
+     * @return true, if successful
+     * @throws ServiceException the service exception
+     */
+    public boolean disableAlert(List<String> jobIds) throws ServiceException {
+        try {
+            return calcImpl.disableAlert(jobIds);
+        }
+        catch (JPAExecutorException jpe) {
+            LOG.error("Exception while updating SLA alerting for Job [{0}]", jobIds.get(0));
+            throw new ServiceException(jpe);
+        }
+    }
+
+    /**
+     * Disable child jobs Sla alert.
+     *
+     * @param jobIds the parent job ids
+     * @param isParentJob, if jobIds are parent job
+     * @return true, if successful
+     * @throws ServiceException the service exception
+     */
+    public boolean disableChildJobAlert(List<String> parentJobIds) throws ServiceException {
+        try {
+            return calcImpl.disableChildJobAlert(parentJobIds);
+        }
+        catch (JPAExecutorException jpe) {
+            LOG.error("Exception while updating SLA alerting for Job [{0}]", parentJobIds.get(0));
+            throw new ServiceException(jpe);
+        }
+    }
+
+    /**
+     * Change jobs Sla definitions
+     * It takes list of pairs of jobid and key/value pairs of el evaluated sla definition.
+     * Support definition are sla-should-start, sla-should-end, sla-nominal-time and sla-max-duration.
+     *
+     * @param jobIdsSLAPair the job ids sla pair
+     * @return true, if successful
+     * @throws ServiceException the service exception
+     */
+    public boolean changeDefinition(List<Pair<String, Map<String, String>>> idSlaDefinitionList)
+            throws ServiceException {
+        try {
+            return calcImpl.changeDefinition(idSlaDefinitionList);
+        }
+        catch (JPAExecutorException jpe) {
+            throw new ServiceException(jpe);
+        }
+    }
 }

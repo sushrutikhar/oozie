@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
@@ -22,11 +23,10 @@ import org.apache.hadoop.conf.Configuration;
 
 public class LauncherMainHadoopUtils {
 
-    private LauncherMainHadoopUtils() {
-    }
+    public static final String CHILD_MAPREDUCE_JOB_TAGS = "oozie.child.mapreduce.job.tags";
+    public static final String OOZIE_JOB_LAUNCH_TIME = "oozie.job.launch.time";
 
-    public static String getYarnJobForMapReduceAction(Configuration actionConf) {
-        return null;
+    private LauncherMainHadoopUtils() {
     }
 
     public static void killChildYarnJobs(Configuration actionConf) {

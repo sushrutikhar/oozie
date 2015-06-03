@@ -15,27 +15,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.workflow.lite;
 
-import org.apache.oozie.service.XLogService;
-import org.apache.oozie.service.DagXLogInfoService;
-import org.apache.oozie.client.OozieClient;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Writable;
 import org.apache.hadoop.util.ReflectionUtils;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.oozie.ErrorCode;
+import org.apache.oozie.client.OozieClient;
+import org.apache.oozie.service.DagXLogInfoService;
+import org.apache.oozie.service.XLogService;
+import org.apache.oozie.util.ParamChecker;
+import org.apache.oozie.util.XConfiguration;
+import org.apache.oozie.util.XLog;
 import org.apache.oozie.workflow.WorkflowApp;
 import org.apache.oozie.workflow.WorkflowException;
 import org.apache.oozie.workflow.WorkflowInstance;
-import org.apache.oozie.util.ParamChecker;
-import org.apache.oozie.util.XLog;
-import org.apache.oozie.util.XConfiguration;
-import org.apache.oozie.ErrorCode;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.io.ByteArrayOutputStream;
-import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,7 +46,7 @@ import java.util.Map;
 public class LiteWorkflowInstance implements Writable, WorkflowInstance {
     private static final String TRANSITION_TO = "transition.to";
 
-    private XLog log;
+    private XLog log = XLog.getLog(getClass());
 
     private static String PATH_SEPARATOR = "/";
     private static String ROOT = PATH_SEPARATOR;
@@ -183,15 +184,19 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
     public synchronized boolean signal(String executionPath, String signalValue) throws WorkflowException {
         ParamChecker.notEmpty(executionPath, "executionPath");
         ParamChecker.notNull(signalValue, "signalValue");
-        log.debug(XLog.STD, "Signaling job execution path [{0}] signal value [{1}]", executionPath, signalValue);
+
         if (status != Status.RUNNING) {
             throw new WorkflowException(ErrorCode.E0716);
         }
+
         NodeInstance nodeJob = executionPaths.get(executionPath);
+        log.debug(XLog.STD, "Signaling job execution path [{0}] signal value [{1}] for node [{2}]", executionPath,
+                signalValue, (nodeJob == null ? null : nodeJob.nodeName));
         if (nodeJob == null) {
             status = Status.FAILED;
             log.error("invalid execution path [{0}]", executionPath);
         }
+
         NodeDef nodeDef = null;
         if (!status.isEndState()) {
             nodeDef = def.getNode(nodeJob.nodeName);
@@ -200,6 +205,7 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
                 log.error("invalid transition [{0}]", nodeJob.nodeName);
             }
         }
+
         if (!status.isEndState()) {
             NodeHandler nodeHandler = newInstance(nodeDef.getHandlerClass());
             boolean exiting = true;
@@ -247,62 +253,49 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
                 if (context.status == Status.KILLED) {
                     status = Status.KILLED;
                     log.debug(XLog.STD, "Completing job, kill node [{0}]", nodeJob.nodeName);
-                }
-                else {
-                    if (context.status == Status.FAILED) {
-                        status = Status.FAILED;
-                        log.debug(XLog.STD, "Completing job, fail node [{0}]", nodeJob.nodeName);
-                    }
-                    else {
-                        if (context.status == Status.SUCCEEDED) {
-                            status = Status.SUCCEEDED;
-                            log.debug(XLog.STD, "Completing job, end node [{0}]", nodeJob.nodeName);
-                        }
-/*
-                else if (context.status == Status.SUSPENDED) {
-                    status = Status.SUSPENDED;
+                } else if (context.status == Status.FAILED) {
+                    status = Status.FAILED;
+                    log.debug(XLog.STD, "Completing job, fail node [{0}]", nodeJob.nodeName);
+                } else if (context.status == Status.SUCCEEDED) {
+                    status = Status.SUCCEEDED;
                     log.debug(XLog.STD, "Completing job, end node [{0}]", nodeJob.nodeName);
-                }
-*/
-                        else {
-                            for (String fullTransition : fullTransitions) {
-                                // this is the whole trick for forking, we need the
-                                // executionpath and the transition
-                                // in the case of no forking last element of
-                                // executionpath is different from transition
-                                // in the case of forking they are the same
+                } else {
+                    for (String fullTransition : fullTransitions) {
+                        //this is the whole trick for forking, we need the executionpath and the transition.
+                        //in case of no forking, last element of executionpath is different from transition.
+                        //in case of forking, they are the same
 
-                                log.debug(XLog.STD, "Exiting node [{0}] with transition[{1}]", nodeJob.nodeName,
-                                          fullTransition);
+                        log.debug(XLog.STD, "Exiting node [{0}] with transition[{1}]", nodeJob.nodeName,
+                                fullTransition);
 
-                                String execPathFromTransition = getExecutionPath(fullTransition);
-                                String transition = getTransitionNode(fullTransition);
-                                def.validateTransition(nodeJob.nodeName, transition);
+                        String execPathFromTransition = getExecutionPath(fullTransition);
+                        String transition = getTransitionNode(fullTransition);
+                        def.validateTransition(nodeJob.nodeName, transition);
 
-                                NodeInstance nodeJobInPath = executionPaths.get(execPathFromTransition);
-                                if ((nodeJobInPath == null) || (!transition.equals(nodeJobInPath.nodeName))) {
-                                    // TODO explain this IF better
-                                    // If the WfJob is signaled with the parent
-                                    // execution executionPath again
-                                    // The Fork node will execute again.. and replace
-                                    // the Node WorkflowJobBean
-                                    // so this is required to prevent that..
-                                    // Question : Should we throw an error in this case
-                                    // ??
-                                    executionPaths.put(execPathFromTransition, new NodeInstance(transition));
-                                    pathsToStart.add(execPathFromTransition);
-                                }
-
-                            }
-                            // signal all new synch transitions
-                            for (String pathToStart : pathsToStart) {
-                                signal(pathToStart, "::synch::");
-                            }
+                        NodeInstance nodeJobInPath = executionPaths.get(execPathFromTransition);
+                        if ((nodeJobInPath == null) || (!transition.equals(nodeJobInPath.nodeName))) {
+                            // TODO explain this IF better
+                            // If the WfJob is signaled with the parent
+                            // execution executionPath again
+                            // The Fork node will execute again.. and replace
+                            // the Node WorkflowJobBean
+                            // so this is required to prevent that..
+                            // Question : Should we throw an error in this case
+                            // ??
+                            executionPaths.put(execPathFromTransition, new NodeInstance(transition));
+                            pathsToStart.add(execPathFromTransition);
                         }
+
+                    }
+
+                    // signal all new synch transitions
+                    for (String pathToStart : pathsToStart) {
+                        signal(pathToStart, "::synch::");
                     }
                 }
             }
         }
+
         if (status.isEndState()) {
             if (status == Status.FAILED) {
                 List<String> failedNodes = terminateNodes(status);
@@ -318,6 +311,7 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
                 }
             }
         }
+
         return status.isEndState();
     }
 
@@ -670,5 +664,4 @@ public class LiteWorkflowInstance implements Writable, WorkflowInstance {
     public int hashCode() {
         return instanceId.hashCode();
     }
-
 }

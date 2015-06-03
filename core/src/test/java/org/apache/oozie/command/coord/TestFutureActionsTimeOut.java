@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.command.coord;
 
 import java.io.File;
@@ -35,9 +36,9 @@ import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.client.CoordinatorAction;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.client.OozieClient;
+import org.apache.oozie.executor.jpa.CoordJobQueryExecutor;
+import org.apache.oozie.executor.jpa.JPAExecutorException;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.service.StoreService;
-import org.apache.oozie.store.CoordinatorStore;
 import org.apache.oozie.store.StoreException;
 import org.apache.oozie.test.XTestCase;
 import org.apache.oozie.util.XConfiguration;
@@ -132,12 +133,11 @@ public class TestFutureActionsTimeOut extends XTestCase {
      * @throws StoreException
      */
     private void checkCoordJob(String jobId) throws StoreException {
-        CoordinatorStore store = Services.get().get(StoreService.class)
-                .getStore(CoordinatorStore.class);
+        CoordinatorJobBean coordJob = null;
         try {
-            CoordinatorJobBean job = store.getCoordinatorJob(jobId, false);
+            coordJob = CoordJobQueryExecutor.getInstance().get(CoordJobQueryExecutor.CoordJobQuery.GET_COORD_JOB, jobId);
         }
-        catch (StoreException se) {
+        catch (JPAExecutorException e) {
             fail("Job ID " + jobId + " was not stored properly in db");
         }
     }

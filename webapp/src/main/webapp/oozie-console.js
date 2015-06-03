@@ -43,8 +43,12 @@ Ext.override(Ext.Component, {
     stateful : false
 });
 
-function getLogs(url, textArea, shouldParseResponse, errorMsg) {
+function getLogs(url, searchFilter, logStatus, textArea, shouldParseResponse, errorMsg) {
     textArea.getEl().dom.value = '';
+    if (searchFilter) {
+        url = url + "&logfilter=" + searchFilter;
+    }
+    logStatus.getEl().dom.innerText = "Log status : Loading... done";
 
     if (!errorMsg) {
         errorMsg = "Fatal Error. Can't load logs.";
@@ -56,13 +60,17 @@ function getLogs(url, textArea, shouldParseResponse, errorMsg) {
             success : function(response, request) {
                 if (shouldParseResponse) {
                     processAndDisplayLog(response.responseText, textArea);
+                    logStatus.getEl().dom.innerText = "Log status : Loading... done";
+
                 } else {
                     textArea.getEl().dom.value = response.responseText;
+                    logStatus.getEl().dom.innerText = "Log status : Loading... done";
                 }
             },
 
             failure : function() {
                 textArea.getEl().dom.value = errorMsg;
+                logStatus.getEl().dom.innerText = "Log status : Errored out";
             }
         });
 
@@ -85,6 +93,11 @@ function getLogs(url, textArea, shouldParseResponse, errorMsg) {
                 if (xhr.status != 200 && xhr.status != 0) {
                     var errorText = xhr.getResponseHeader('oozie-error-message');
                     textArea.getEl().dom.value = "Error :\n" + (errorText ? errorText : xhr.responseText);
+                    logStatus.getEl().dom.innerText = "Log status : Errored out";
+
+                }
+                if (xhr.readyState =4  && xhr.status == 200) {
+                    logStatus.getEl().dom.innerText = "Log status : Loading... done";
                 }
             } catch (e) {
             }
@@ -231,7 +244,7 @@ function treeNodeFromXml(XmlEl) {
     return result;
 }
 
-function treeNodeFromJson(json, rootText) {
+function treeNodeFromJsonInstrumentation(json, rootText) {
     var result = new Ext.tree.TreeNode({
         text: rootText
     });
@@ -242,13 +255,51 @@ function treeNodeFromJson(json, rootText) {
                 if (typeof json[i] == 'object') {
                     var c;
                     if (json[i]['group']) {
-                        c = treeNodeFromJson(json[i]['data'], json[i]['group']);
+                        c = treeNodeFromJsonInstrumentation(json[i]['data'], json[i]['group']);
                     }
                     else {
-                        c = treeNodeFromJson(json[i], json[i]['name']);
+                        c = treeNodeFromJsonInstrumentation(json[i], json[i]['name']);
                     }
                     if (c)
                         result.appendChild(c);
+                }
+                else if (typeof json[i] != 'function') {
+                    result.appendChild(new Ext.tree.TreeNode({
+                        text: i + " -> " + json[i]
+                    }));
+                }
+            }
+            else {
+                result.appendChild(new Ext.tree.TreeNode({
+                    text: i + " -> " + json[i]
+                }));
+            }
+        }
+    }
+    else {
+        result.appendChild(new Ext.tree.TreeNode({
+            text: json
+        }));
+    }
+    return result;
+}
+
+function treeNodeFromJsonMetrics(json, rootText) {
+    var result = new Ext.tree.TreeNode({
+        text: rootText
+    });
+    //  For Elements, process attributes and children
+    if (typeof json === 'object') {
+        for (var i in json) {
+            if (json[i]) {
+                if (typeof json[i] == 'object') {
+                    var c;
+                    if (json[i]) {
+                        c = treeNodeFromJsonMetrics(json[i], i);
+                        if (c) {
+                            result.appendChild(c);
+                        }
+                    }
                 }
                 else if (typeof json[i] != 'function') {
                     result.appendChild(new Ext.tree.TreeNode({
@@ -349,8 +400,31 @@ function jobDetailsPopup(response, request) {
         width: 1035,
         height: 400,
         autoScroll: true,
-        emptyText: "Loading..."
+        emptyText: "To optimize log searching, you can provide search filter options as opt1=val1;opt2=val1;opt3=val1.\n" +
+        "Available options are recent, start, end, loglevel, text, limit and debug.\n" +
+        "For more detail refer documentation (/oozie/docs/DG_CommandLineTool.html#Filtering_the_server_logs_with_logfilter_options)"
     });
+
+    var jobErrorLogArea = new Ext.form.TextArea({
+        fieldLabel: 'ErrorLogs',
+        editable: false,
+        name: 'errorlogs',
+        width: 1035,
+        height: 400,
+        autoScroll: true,
+        emptyText: ""
+    });
+    var jobAuditLogArea = new Ext.form.TextArea({
+        fieldLabel: 'AuditLogs',
+        editable: false,
+        name: 'auditlogs',
+        width: 1035,
+        height: 400,
+        autoScroll: true,
+        emptyText: ""
+    });
+
+
     function fetchDefinition(workflowId) {
         Ext.Ajax.request({
             url: getOozieBase() + 'job/' + workflowId + "?show=definition",
@@ -361,8 +435,17 @@ function jobDetailsPopup(response, request) {
 
         });
     }
-    function fetchLogs(workflowId) {
-        getLogs(getOozieBase() + 'job/' + workflowId + "?show=log", jobLogArea, false, null);
+
+    function fetchErrorLogs(workflowId, errorLogStatus) {
+        getLogs(getOozieBase() + 'job/' + workflowId + "?show=errorlog", null, errorLogStatus, jobErrorLogArea, false, null);
+    }
+
+    function fetchAuditLogs(workflowId, auditLogStatus) {
+        getLogs(getOozieBase() + 'job/' + workflowId + "?show=auditlog", null, auditLogStatus, jobAuditLogArea, false, null);
+    }
+
+    function fetchLogs(workflowId, logStatus) {
+        getLogs(getOozieBase() + 'job/' + workflowId + "?show=log", searchFilterBox.getValue(), logStatus, jobLogArea, false, null);
 
     }
     var jobDetails = eval("(" + response.responseText + ")");
@@ -660,7 +743,7 @@ function jobDetailsPopup(response, request) {
                 })]
             });
 
-            // Tab to show list of child Job URLs for pig action
+            // Tab to show list of child Job URLs
             var childJobsItem = {
                 title : 'Child Job URLs',
                 autoScroll : true,
@@ -671,7 +754,8 @@ function jobDetailsPopup(response, request) {
                 width: 540,
                 items : urlUnit
             };
-            if (actionStatus.type == "pig" || actionStatus.type == "hive" || actionStatus.type == "map-reduce") {
+            if (actionStatus.type == "pig" || actionStatus.type == "hive" || actionStatus.type == "map-reduce"
+                    || actionStatus.type == "hive2" || actionStatus.type == "sqoop") {
                 var tabPanel = win.items.get(0);
                 tabPanel.add(childJobsItem);
             }
@@ -747,7 +831,42 @@ function jobDetailsPopup(response, request) {
         autoScroll: true,
         style  : { overflow: 'auto', overflowX: 'hidden' }
     });
+
+    var searchFilter = new Ext.form.Label({
+        text : 'Enter Search Filter'
+    });
+
+    var searchFilterBox = new Ext.form.TextField({
+                 fieldLabel: 'searchFilterBox',
+                 name: 'searchFilterBox',
+                 width: 350,
+                 value: ''
+    });
+
+    var logStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var errorLogStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var auditLogStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+
+    var getLogButton = new Ext.Button({
+        text: 'Get Logs',
+        ctCls: 'x-btn-over',
+        handler: function() {
+            fetchLogs(workflowId, logStatus);
+            }
+    });
+
     var isLoadedDAG = false;
+    var isErrorLogLoaded = false;
+    var isAuditLogLoaded = false;
 
     var jobDetailsTab = new Ext.TabPanel({
         activeTab: 0,
@@ -774,14 +893,31 @@ function jobDetailsPopup(response, request) {
         }, {
             title: 'Job Log',
             items: jobLogArea,
+            tbar: [ searchFilter, searchFilterBox, getLogButton, {xtype: 'tbfill'}, logStatus]
+        },
+        {
+            title: 'Job Error Log',
+            items: jobErrorLogArea,
             tbar: [ {
                 text: "&nbsp;&nbsp;&nbsp;",
                 icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
                 handler: function() {
-                    fetchLogs(workflowId);
+                    fetchErrorLogs(workflowId, errorLogStatus);
                 }
-            }]
-        }, {
+            }, {xtype: 'tbfill'}, errorLogStatus]
+        },
+        {
+            title: 'Job Audit Log',
+            items: jobAuditLogArea,
+            tbar: [ {
+                text: "&nbsp;&nbsp;&nbsp;",
+                icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
+                handler: function() {
+                    fetchAuditLogs(workflowId, auditLogStatus);
+                }
+            }, {xtype: 'tbfill'}, auditLogStatus]
+        },
+        {
             title: 'Job DAG',
             items: imageContainer,
             tbar: [{
@@ -799,12 +935,22 @@ function jobDetailsPopup(response, request) {
             jobs_grid.setVisible(true);
             return;
         }
-        if (selectedTab.title == 'Job Log') {
-            fetchLogs(workflowId);
-        }
         else if (selectedTab.title == 'Job Definition') {
             fetchDefinition(workflowId);
-        } else if(selectedTab.title == 'Job DAG') {
+        }
+        else if (selectedTab.title == 'Job Error Log') {
+            if(!isErrorLogLoaded){
+                fetchErrorLogs(workflowId, errorLogStatus);
+                isErrorLogLoaded=true;
+            }
+
+        }else if (selectedTab.title == 'Job Audit Log') {
+            if(!isAuditLogLoaded){
+                fetchAuditLogs(workflowId, auditLogStatus);
+                isAuditLogLoaded=true;
+            }
+        }
+        else if(selectedTab.title == 'Job DAG') {
                 if(!isLoadedDAG){
                 var dagImage=   new Ext.ux.Image({
                         id: 'dagImage',
@@ -834,6 +980,7 @@ function jobDetailsPopup(response, request) {
 }
 
 function coordJobDetailsPopup(response, request) {
+    var isErrorLogLoaded= false;
 
     var jobDefinitionArea = new Ext.form.TextArea({
         fieldLabel: 'Definition',
@@ -853,13 +1000,38 @@ function coordJobDetailsPopup(response, request) {
         height: 400,
         autoScroll: true,
         emptyText: "Enter the list of actions in the format similar to 1,3-4,7-40 to get logs for specific coordinator actions. " +
-                   "To get the log for the coordinator job, leave the actions field empty."
+                   "To get the log for the coordinator job, leave the actions field empty.\n\n" +
+        "To optimize log searching, you can provide search filter options as opt1=val1;opt2=val1;opt3=val1.\n" +
+        "Available options are recent, start, end, loglevel, text, limit and debug.\n" +
+        "For more detail refer documentation (/oozie/docs/DG_CommandLineTool.html#Filtering_the_server_logs_with_logfilter_options)"
     });
+    var jobErrorLogArea = new Ext.form.TextArea({
+        fieldLabel: 'ErrorLogs',
+        editable: false,
+        id: 'jobErrorLogAreaId',
+        name: 'errorlogs',
+        width: 1035,
+        height: 400,
+        autoScroll: true,
+        emptyText: ""
+    });
+    var jobAuditLogArea = new Ext.form.TextArea({
+        fieldLabel: 'AuditLogs',
+        editable: false,
+        id: 'jobAuditLogAreaId',
+        name: 'auditlogs',
+        width: 1035,
+        height: 400,
+        autoScroll: true,
+        emptyText: ""
+    });
+
     var getLogButton = new Ext.Button({
-        text: 'Get logs',
-	    handler: function() {
+        text: 'Get Logs',
+        ctCls: 'x-btn-over',
+        handler: function() {
             fetchLogs(coordJobId, actionsTextBox.getValue());
-	    }
+        }
     });
     var actionsTextBox = new Ext.form.TextField({
              fieldLabel: 'ActionsList',
@@ -870,6 +1042,29 @@ function coordJobDetailsPopup(response, request) {
 
     var actionsText = new Ext.form.Label({
         text : 'Enter action list : '
+    });
+
+    var searchFilter = new Ext.form.Label({
+        text : 'Enter Search Filter'
+    });
+
+    var searchFilterBox = new Ext.form.TextField({
+                 fieldLabel: 'searchFilterBox',
+                 name: 'searchFilterBox',
+                 width: 350,
+                 value: ''
+    });
+
+    var logStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var errorLogStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var auditLogStatus = new Ext.form.Label({
+        text : 'Log Status : '
     });
 
     function fetchDefinition(coordJobId) {
@@ -884,13 +1079,22 @@ function coordJobDetailsPopup(response, request) {
     function fetchLogs(coordJobId, actionsList) {
         if (actionsList == '') {
             getLogs(getOozieBase() + 'job/' + coordJobId + "?show=log",
-                    jobLogArea, true, null);
+                    searchFilterBox.getValue(), logStatus, jobLogArea, true, null);
         } else {
             getLogs(getOozieBase() + 'job/' + coordJobId
-                    + "?show=log&type=action&scope=" + actionsList, jobLogArea,
+                    + "?show=log&type=action&scope=" + actionsList, searchFilterBox.getValue(), logStatus, jobLogArea,
                     true,
                     'Action List format is wrong. Format should be similar to 1,3-4,7-40');
         }
+    }
+    function fetchErrorLogs(coordJobId) {
+            getLogs(getOozieBase() + 'job/' + coordJobId + "?show=errorlog",
+                    null, errorLogStatus, jobErrorLogArea, true, null);
+    }
+
+    function fetchAuditLogs(coordJobId) {
+        getLogs(getOozieBase() + 'job/' + coordJobId + "?show=auditlog", null,
+                auditLogStatus, jobAuditLogArea, true, null);
     }
 
     var jobDetails = eval("(" + response.responseText + ")");
@@ -1053,7 +1257,7 @@ function coordJobDetailsPopup(response, request) {
             header: "Last Mod Time",
             width: 170,
             sortable: true,
-            dataIndex: 'LastModifiedTime'
+            dataIndex: 'lastModifiedTime'
         } ],
         stripeRows: true,
         // autoHeight: true,
@@ -1279,9 +1483,9 @@ function coordJobDetailsPopup(response, request) {
             title: 'Coord Job Info',
             items: fs
         },{
-	   title: 'Coord Job Definition',
+       title: 'Coord Job Definition',
             items: jobDefinitionArea
-	},{
+    },{
             title: 'Coord Job Configuration',
             items: new Ext.form.TextArea({
             fieldLabel: 'Configuration',
@@ -1296,14 +1500,37 @@ function coordJobDetailsPopup(response, request) {
            title: 'Coord Job Log',
            items: jobLogArea,
            tbar: [
-                   actionsText,actionsTextBox, getLogButton]
-       },{
+                  actionsText,actionsTextBox, searchFilter, searchFilterBox, getLogButton, {xtype: 'tbfill'}, logStatus]
+       },
+       {
+           title: 'Coord Error Log',
+           items: jobErrorLogArea,
+           tbar: [ {
+               text: "&nbsp;&nbsp;&nbsp;",
+               icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
+               handler: function() {
+                   fetchErrorLogs(coordJobId);
+               }
+           },{xtype: 'tbfill'}, errorLogStatus]
+       },
+       {
+           title: 'Coord Audit Log',
+           items: jobAuditLogArea,
+           tbar: [ {
+               text: "&nbsp;&nbsp;&nbsp;",
+               icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
+               handler: function() {
+                   fetchAuditLogs(coordJobId);
+               }
+           },{xtype: 'tbfill'}, auditLogStatus]
+       },
+       {
            title: 'Coord Action Reruns',
            items: rerunsUnit,
            tbar: [
                rerunActionText, rerunActionTextBox, getRerunsButton]
-       }]
-});
+       },
+    ]});
 
     jobDetailsTab.addListener("tabchange", function(panel, selectedTab) {
         if (selectedTab.title == "Coord Job Info") {
@@ -1315,6 +1542,12 @@ function coordJobDetailsPopup(response, request) {
         }
         else if (selectedTab.title == 'Coord Action Reruns') {
             rerunsUnit.setVisible(true);
+        }
+        else if (selectedTab.title == 'Coord Error Log') {
+            if(!isErrorLogLoaded){
+                fetchErrorLogs(coordJobId);
+                isErrorLogLoaded=true;
+            }
         }
         coord_jobs_grid.setVisible(false);
     });
@@ -1331,7 +1564,10 @@ function coordJobDetailsPopup(response, request) {
 }
 
 function bundleJobDetailsPopup(response, request) {
-	var jobDefinitionArea = new Ext.form.TextArea({
+
+    var isErrorLogLoaded = false;
+    var isAuditLogLoaded = false;
+    var jobDefinitionArea = new Ext.form.TextArea({
         fieldLabel: 'Definition',
         editable: false,
         name: 'definition',
@@ -1499,8 +1735,62 @@ function bundleJobDetailsPopup(response, request) {
         width: 1010,
         height: 400,
         autoScroll: true,
-        emptyText: "Loading..."
+        emptyText: "To optimize log searching, you can provide search filter options as opt1=val1;opt2=val1;opt3=val1.\n" +
+        "Available options are recent, start, end, loglevel, text, limit and debug.\n" +
+        "For more detail refer documentation (/oozie/docs/DG_CommandLineTool.html#Filtering_the_server_logs_with_logfilter_options)"
     });
+
+    var jobErrorLogArea = new Ext.form.TextArea({
+        fieldLabel: 'ErrorLogs',
+        editable: false,
+        name: 'errorlogs',
+        width: 1010,
+        height: 400,
+        autoScroll: true,
+        emptyText: ""
+    });
+
+    var jobAuditLogArea = new Ext.form.TextArea({
+        fieldLabel: 'AuditLogs',
+        editable: false,
+        name: 'auditlogs',
+        width: 1035,
+        height: 400,
+        autoScroll: true,
+        emptyText: ""
+    });
+
+    var searchFilter = new Ext.form.Label({
+        text : 'Enter Search Filter'
+    });
+
+    var searchFilterBox = new Ext.form.TextField({
+                 fieldLabel: 'searchFilterBox',
+                 name: 'searchFilterBox',
+                 width: 350,
+                 value: ''
+    });
+
+    var logStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var errorLogStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var auditLogStatus = new Ext.form.Label({
+        text : 'Log Status : '
+    });
+
+    var getLogButton = new Ext.Button({
+        text: 'Get Logs',
+        ctCls: 'x-btn-over',
+        handler: function() {
+            getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=log", searchFilterBox.getValue(), logStatus, jobLogArea, false, null);
+        }
+    });
+
 
     var jobDetailsTab = new Ext.TabPanel({
         activeTab: 0,
@@ -1511,8 +1801,8 @@ function bundleJobDetailsPopup(response, request) {
             items: fs
         },{
            title: 'Bundle Job Definition',
-	   		 items: jobDefinitionArea
-	    },{
+             items: jobDefinitionArea
+        },{
             title: 'Bundle Job Configuration',
              items: new Ext.form.TextArea({
               fieldLabel: 'Configuration',
@@ -1526,27 +1816,58 @@ function bundleJobDetailsPopup(response, request) {
       },{
            title: 'Bundle Job Log',
            items: jobLogArea,
-             tbar: [ {
-                text: "&nbsp;&nbsp;&nbsp;",
-                icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
-                handler: function() {
-                    getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=log", jobLogArea, false, null);
-                }
-            }]
-          }]
-     });
+             tbar: [searchFilter, searchFilterBox, getLogButton, {xtype: 'tbfill'}, logStatus]
+      },
+     {
+         title: 'Bundle Error Log',
+         items: jobErrorLogArea,
+         tbar: [ {
+             text: "&nbsp;&nbsp;&nbsp;",
+             icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
+             handler: function() {
+                 getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=errorlog", null, errorLogStatus, jobErrorLogArea,
+                         false, null);
+             }
+         }, {xtype: 'tbfill'}, errorLogStatus]
+     },
+     {
+          title: 'Bundle Audit Log',
+          items: jobAuditLogArea,
+          tbar: [ {
+              text: "&nbsp;&nbsp;&nbsp;",
+              icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
+              handler: function() {
+                  getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=auditlog", null, auditLogStatus, jobAuditLogArea,
+                          false, null);
+              }
+          }, {xtype: 'tbfill'}, auditLogStatus]
+      }
+
+      ]});
 
     jobDetailsTab.addListener("tabchange", function(panel, selectedTab) {
         if (selectedTab.title == "Bundle Job Info") {
             coord_jobs_grid.setVisible(true);
             return;
         }
-        else if (selectedTab.title == 'Bundle Job Log') {
-            getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=log", jobLogArea, false, null);
-        }
         else if (selectedTab.title == 'Bundle Job Definition') {
             fetchDefinition(bundleJobId);
         }
+        else if (selectedTab.title == 'Bundle Error Log') {
+            if(!isErrorLogLoaded){
+                getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=errorlog", null, errorLogStatus, jobErrorLogArea,
+                        false, null);
+                isErrorLogLoaded=true;
+            }
+        }
+        else if (selectedTab.title == 'Bundle Audit Log') {
+            if(!isAuditLogLoaded){
+                getLogs(getOozieBase() + 'job/' + bundleJobId + "?show=auditlog", null, auditLogStatus, jobAuditLogArea,
+                        false, null);
+                isAuditLogLoaded=true;
+            }
+        }
+
         coord_jobs_grid.setVisible(false);
     });
 
@@ -1559,8 +1880,6 @@ function bundleJobDetailsPopup(response, request) {
             }
         });
     }
-
-
 
     var win = new Ext.Window({
         title: 'Job (Name: ' + bundleJobName + '/bundleJobId: ' + bundleJobId + ')',
@@ -1662,7 +1981,7 @@ function showConfigurationInWindow(dataObject, windowTitle) {
  * create the coord jobs store
  */
 var coord_jobs_store = new Ext.data.JsonStore({
-	baseParams: {
+    baseParams: {
         jobtype: "coord",
         filter: "status=RUNNING;status=RUNNINGWITHERROR",
         timezone: getTimeZone()
@@ -1704,7 +2023,7 @@ jobs_store.proxy.conn.method = "GET";
  */
 var bundle_jobs_store = new Ext.data.JsonStore({
 
-	baseParams: {
+    baseParams: {
         jobtype: "bundle",
         filter: "status=RUNNING;status=RUNNINGWITHERROR",
         timezone: getTimeZone()
@@ -2078,23 +2397,54 @@ var viewInstrumentation = new Ext.Action({
             url: getOozieBase() + 'admin/instrumentation',
             success: function(response, request) {
                 var jsonData = eval("(" + response.responseText + ")");
-                var timers = treeNodeFromJson(jsonData["timers"], "timers");
+                var timers = treeNodeFromJsonInstrumentation(jsonData["timers"], "timers");
                 timers.expanded = false;
-                var samplers = treeNodeFromJson(jsonData["samplers"], "samplers");
+                var samplers = treeNodeFromJsonInstrumentation(jsonData["samplers"], "samplers");
                 samplers.expanded = false;
-                var counters = treeNodeFromJson(jsonData["counters"], "counters");
+                var counters = treeNodeFromJsonInstrumentation(jsonData["counters"], "counters");
                 counters.expanded = false;
-                var variables = treeNodeFromJson(jsonData["variables"], "variables");
+                var variables = treeNodeFromJsonInstrumentation(jsonData["variables"], "variables");
                 variables.expanded = false;
-                while (treeRoot.hasChildNodes()) {
-                    var child = treeRoot.firstChild;
-                    treeRoot.removeChild(child);
+                while (instrumentationTreeRoot.hasChildNodes()) {
+                    var child = instrumentationTreeRoot.firstChild;
+                    instrumentationTreeRoot.removeChild(child);
                 }
-                treeRoot.appendChild(samplers);
-                treeRoot.appendChild(counters);
-                treeRoot.appendChild(timers);
-                treeRoot.appendChild(variables);
-                treeRoot.expand(false, true);
+                instrumentationTreeRoot.appendChild(samplers);
+                instrumentationTreeRoot.appendChild(counters);
+                instrumentationTreeRoot.appendChild(timers);
+                instrumentationTreeRoot.appendChild(variables);
+                instrumentationTreeRoot.expand(false, true);
+            }
+
+        });
+    }
+
+});
+var viewMetrics = new Ext.Action({
+    text: "&nbsp;&nbsp;&nbsp;",
+    icon: 'ext-2.2/resources/images/default/grid/refresh.gif',
+    handler: function() {
+        Ext.Ajax.request({
+            url: getOozieBase() + 'admin/metrics',
+            success: function(response, request) {
+                var jsonData = eval("(" + response.responseText + ")");
+                var timers = treeNodeFromJsonMetrics(jsonData["timers"], "timers");
+                timers.expanded = false;
+                var histograms = treeNodeFromJsonMetrics(jsonData["histograms"], "histograms");
+                histograms.expanded = false;
+                var counters = treeNodeFromJsonMetrics(jsonData["counters"], "counters");
+                counters.expanded = false;
+                var gauges = treeNodeFromJsonMetrics(jsonData["gauges"], "gauges");
+                gauges.expanded = false;
+                while (metricsTreeRoot.hasChildNodes()) {
+                    var child = metricsTreeRoot.firstChild;
+                    metricsTreeRoot.removeChild(child);
+                }
+                metricsTreeRoot.appendChild(counters);
+                metricsTreeRoot.appendChild(timers);
+                metricsTreeRoot.appendChild(histograms);
+                metricsTreeRoot.appendChild(gauges);
+                metricsTreeRoot.expand(false, true);
             }
 
         });
@@ -2130,8 +2480,13 @@ var viewOSDetails = new Ext.Action({
     }
 });
 
-var treeRoot = new Ext.tree.TreeNode({
+var instrumentationTreeRoot = new Ext.tree.TreeNode({
     text: "Instrumentation",
+    expanded: true
+});
+
+var metricsTreeRoot = new Ext.tree.TreeNode({
+    text: "Metrics",
     expanded: true
 });
 
@@ -2280,16 +2635,25 @@ function initConsole() {
         animCollapse: false,
         title: "System Info"
     });
-    var resultArea = new Ext.tree.TreePanel({
+    var instrumentationArea = new Ext.tree.TreePanel({
         autoScroll: true,
         useArrows: true,
         height: 300,
-        root: treeRoot,
+        root: instrumentationTreeRoot,
         tbar: [viewInstrumentation, {
             xtype: 'tbfill'
         }, checkStatus, serverVersion],
         title: 'Instrumentation'
-
+    });
+    var metricsArea = new Ext.tree.TreePanel({
+        autoScroll: true,
+        useArrows: true,
+        height: 300,
+        root: metricsTreeRoot,
+        tbar: [viewMetrics, {
+            xtype: 'tbfill'
+        }, checkStatus, serverVersion],
+        title: 'Metrics'
     });
 
     var slaDashboard = new Ext.Panel({
@@ -2319,7 +2683,7 @@ function initConsole() {
             width: 80,
             sortable: true,
             dataIndex: 'status'
-	}, {
+    }, {
             header: "User",
             width: 80,
             sortable: true,
@@ -2537,7 +2901,12 @@ function initConsole() {
         tabs.add(slaDashboard);
     }
     tabs.add(adminGrid);
-    tabs.add(resultArea);
+    if (isInstrumentationServiceEnabled == "true") {
+        tabs.add(instrumentationArea);
+    }
+    if (isMetricsInstrumentationServiceEnabled == "true") {
+        tabs.add(metricsArea);
+    }
     tabs.add(settingsArea);
     tabs.setActiveTab(jobs_grid);
     // showing Workflow Jobs active tab as default
@@ -2570,7 +2939,12 @@ function initConsole() {
     checkStatus.execute();
     viewConfig.execute();
     serverVersion.execute();
-    viewInstrumentation.execute();
+    if (isInstrumentationServiceEnabled == "true") {
+        viewInstrumentation.execute();
+    }
+    if (isMetricsInstrumentationServiceEnabled == "true") {
+        viewMetrics.execute();
+    }
     var jobId = getReqParam("job");
     if (jobId != "") {
         if (jobId.endsWith("-C")) {

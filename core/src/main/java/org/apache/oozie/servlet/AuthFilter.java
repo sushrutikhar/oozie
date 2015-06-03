@@ -15,11 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.servlet;
 
 import org.apache.hadoop.security.authentication.server.AuthenticationFilter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.service.Services;
+import org.apache.hadoop.security.SecurityUtil;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -31,15 +33,21 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+import org.apache.oozie.service.JobsConcurrencyService;
+import org.apache.oozie.util.ZKUtils;
 
 /**
  * Authentication filter that extends Hadoop-auth AuthenticationFilter to override
  * the configuration loading.
  */
 public class AuthFilter extends AuthenticationFilter {
-    private static final String OOZIE_PREFIX = "oozie.authentication.";
+    public static final String OOZIE_PREFIX = "oozie.authentication.";
+    private static final String KERBEROS_PRINCIPAL_CONFIG = "kerberos.principal";
 
     private HttpServlet optionsServlet;
+    private ZKUtils zkUtils = null;
 
     /**
      * Initialize the filter.
@@ -49,6 +57,15 @@ public class AuthFilter extends AuthenticationFilter {
      */
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
+        // If using HA, we'd like to use our Curator client with ZKSignerSecretProvider, so we have to pass it
+        if (Services.get().get(JobsConcurrencyService.class).isHighlyAvailableMode()) {
+            try {
+                zkUtils = ZKUtils.register(this);
+            } catch(Exception e) {
+                throw new ServletException(e);
+            }
+            filterConfig.getServletContext().setAttribute("signer.secret.provider.zookeeper.curator.client", zkUtils.getClient());
+        }
         super.init(filterConfig);
         optionsServlet = new HttpServlet() {};
         optionsServlet.init();
@@ -60,6 +77,9 @@ public class AuthFilter extends AuthenticationFilter {
     @Override
     public void destroy() {
         optionsServlet.destroy();
+        if (zkUtils != null) {
+            zkUtils.unregister(this);
+        }
         super.destroy();
     }
 
@@ -89,8 +109,33 @@ public class AuthFilter extends AuthenticationFilter {
             if (name.startsWith(OOZIE_PREFIX)) {
                 String value = conf.get(name);
                 name = name.substring(OOZIE_PREFIX.length());
-                props.setProperty(name, value);
+                if (name.equals(KERBEROS_PRINCIPAL_CONFIG)) {
+                    String hostName = "localhost";
+                    String principal = value;
+                    try {
+                        hostName = InetAddress.getLocalHost().getCanonicalHostName();
+                        principal = SecurityUtil.getServerPrincipal(value, hostName);
+                    } catch (IOException ioe) {
+                       // ignore.
+                    }
+                    props.setProperty(name, principal);
+                 } else {
+                    props.setProperty(name, value);
+                }
             }
+        }
+
+        // If using HA, we need to set some extra configs for the ZKSignerSecretProvider.  No need to bother the user with these
+        // details, so we'll set them for the user (unless the user really wants to set them)
+        if (Services.get().get(JobsConcurrencyService.class).isHighlyAvailableMode()) {
+            if (!props.containsKey("signer.secret.provider")) {
+                props.setProperty("signer.secret.provider", "zookeeper");
+            }
+            if (!props.containsKey("signer.secret.provider.zookeeper.path")) {
+                props.setProperty("signer.secret.provider.zookeeper.path",
+                        ZKUtils.ZK_BASE_SERVICES_PATH + "/signersecrets");
+            }
+            props.setProperty("signer.secret.provider.zookeeper.disconnect.on.shutdown", "false");
         }
 
         return props;

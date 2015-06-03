@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.coord;
 
 import com.google.common.collect.Lists;
@@ -166,13 +167,13 @@ public class CoordELFunctions {
     }
 
     /**
-     * Returns the a date string while given a base date in 'strBaseDate',
-     * offset and unit (e.g. DAY, MONTH, HOUR, MINUTE, MONTH).
+     * Returns a date string that is offset from 'strBaseDate' by the amount specified.  The unit can be one of
+     * DAY, MONTH, HOUR, MINUTE, MONTH.
      *
-     * @param strBaseDate -- base date
-     * @param offset -- any number
-     * @param unit -- DAY, MONTH, HOUR, MINUTE, MONTH
-     * @return date string
+     * @param strBaseDate The base date
+     * @param offset any number
+     * @param unit one of DAY, MONTH, HOUR, MINUTE, MONTH
+     * @return the offset date string
      * @throws Exception
      */
     public static String ph2_coord_dateOffset(String strBaseDate, int offset, String unit) throws Exception {
@@ -185,6 +186,27 @@ public class CoordELFunctions {
 
     public static String ph3_coord_dateOffset(String strBaseDate, int offset, String unit) throws Exception {
         return ph2_coord_dateOffset(strBaseDate, offset, unit);
+    }
+
+    /**
+     * Returns a date string that is offset from 'strBaseDate' by the difference from Oozie processing timezone to the given
+     * timezone. It will account for daylight saving time based on the given 'strBaseDate' and 'timezone'.
+     *
+     * @param strBaseDate The base date
+     * @param timezone
+     * @return the offset date string
+     * @throws Exception
+     */
+    public static String ph2_coord_dateTzOffset(String strBaseDate, String timezone) throws Exception {
+        Calendar baseCalDate = DateUtils.getCalendar(strBaseDate);
+        StringBuilder buffer = new StringBuilder();
+        baseCalDate.setTimeZone(DateUtils.getTimeZone(timezone));
+        buffer.append(DateUtils.formatDate(baseCalDate));
+        return buffer.toString();
+    }
+
+    public static String ph3_coord_dateTzOffset(String strBaseDate, String timezone) throws Exception{
+        return ph2_coord_dateTzOffset(strBaseDate, timezone);
     }
 
     /**
@@ -316,7 +338,7 @@ public class CoordELFunctions {
                     if (uriHandler == null) {
                         URI uri = new URI(uriPath);
                         uriHandler = uriService.getURIHandler(uri);
-                        uriContext = uriHandler.getContext(uri, conf, user);
+                        uriContext = uriHandler.getContext(uri, conf, user, true);
                     }
                     String uriWithDoneFlag = uriHandler.getURIWithDoneFlag(uriPath, doneFlag);
                     if (uriHandler.exists(new URI(uriWithDoneFlag), uriContext)) {
@@ -769,6 +791,10 @@ public class CoordELFunctions {
         return echoUnResolved("dateOffset", n + " , " + offset + " , " + unit);
     }
 
+    public static String ph1_coord_dateTzOffset_echo(String n, String timezone) {
+        return echoUnResolved("dateTzOffset", n + " , " + timezone);
+    }
+
     public static String ph1_coord_formatTime_echo(String dateTime, String format) {
         // Quote the dateTime value since it would contain a ':'.
         return echoUnResolved("formatTime", "'"+dateTime+"'" + " , " + format);
@@ -1074,7 +1100,7 @@ public class CoordELFunctions {
                     if (uriHandler == null) {
                         URI uri = new URI(uriPath);
                         uriHandler = uriService.getURIHandler(uri);
-                        uriContext = uriHandler.getContext(uri, conf, user);
+                        uriContext = uriHandler.getContext(uri, conf, user, true);
                     }
                     String uriWithDoneFlag = uriHandler.getURIWithDoneFlag(uriPath, doneFlag);
                     if (uriHandler.exists(new URI(uriWithDoneFlag), uriContext)) {

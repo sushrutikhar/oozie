@@ -29,4 +29,8 @@
         <value>action.barbar</value>
     </property>
 
+    <property>
+        <name>action.testprop</name>
+        <value>100</value>
+    </property>
 </configuration>

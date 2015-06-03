@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *      http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.File;
@@ -59,9 +60,11 @@ public class SqoopMain extends LauncherMain {
         }
 
         sqoopConf.addResource(new Path("file:///", actionXml));
+        setYarnTag(sqoopConf);
 
         String delegationToken = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (delegationToken != null) {
+            sqoopConf.setBoolean("sqoop.hbase.security.token.skip", true);
             sqoopConf.set("mapreduce.job.credentials.binary", delegationToken);
             System.out.println("------------------------");
             System.out.println("Setting env property for mapreduce.job.credentials.binary to: " + delegationToken);
@@ -186,19 +189,7 @@ public class SqoopMain extends LauncherMain {
         System.out.println();
 
         // harvesting and recording Hadoop Job IDs
-        Properties jobIds = getHadoopJobIds(logFile, SQOOP_JOB_IDS_PATTERNS);
-
-        File file = new File(System.getProperty(LauncherMapper.ACTION_PREFIX
-                + LauncherMapper.ACTION_DATA_OUTPUT_PROPS));
-        OutputStream os = new FileOutputStream(file);
-        try {
-            jobIds.store(os, "");
-        }
-        finally {
-            os.close();
-        }
-        System.out.println(" Hadoop Job IDs executed by Sqoop: " + jobIds.getProperty(HADOOP_JOBS));
-        System.out.println();
+        writeExternalChildIDs(logFile, SQOOP_JOB_IDS_PATTERNS, "Sqoop");
     }
 
     protected void runSqoopJob(String[] args) throws Exception {

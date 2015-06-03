@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
  package org.apache.oozie.command.coord;
 
 import java.io.File;
@@ -24,7 +25,6 @@ import org.apache.oozie.CoordinatorActionBean;
 import org.apache.oozie.CoordinatorJobBean;
 import org.apache.oozie.client.CoordinatorJob;
 import org.apache.oozie.service.Services;
-import org.apache.oozie.store.CoordinatorStore;
 import org.apache.oozie.store.StoreException;
 import org.apache.oozie.test.XDataTestCase;
 import org.apache.oozie.util.DateUtils;
@@ -55,22 +55,21 @@ public class TestCoordELExtensions extends XDataTestCase {
         Date startTime = DateUtils.parseDateUTC("2009-03-06T010:00Z");
         Date endTime = DateUtils.parseDateUTC("2009-03-07T12:00Z");
         CoordinatorJobBean job = createCoordJob("coord-job-for-elext.xml",
-                CoordinatorJob.Status.PREMATER, startTime, endTime, false, false, 0);
+                CoordinatorJob.Status.RUNNING, startTime, endTime, false, false, 0);
         addRecordToCoordJobTable(job);
 
-        new CoordActionMaterializeCommand(job.getId(), startTime, endTime).call();
+        new CoordMaterializeTransitionXCommand(job.getId(), 3600).call();
         checkCoordAction(job.getId() + "@1");
     }
 
     protected CoordinatorActionBean checkCoordAction(String actionId) throws StoreException {
-        CoordinatorStore store = new CoordinatorStore(false);
         try {
-            CoordinatorActionBean action = store.getCoordinatorAction(actionId, false);
+            CoordinatorActionBean action = getCoordinatorAction(actionId);
             assertEquals(
                     "file://#testDir/2009/03/06/00/_SUCCESS#file://#testDir/2009/03/05/23/_SUCCESS",
                     action.getMissingDependencies());
             return action;
-        } catch (StoreException se) {
+        } catch (Exception se) {
             se.printStackTrace();
             fail("Action ID " + actionId + " was not stored properly in db");
         }

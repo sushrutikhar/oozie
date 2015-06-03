@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.service;
 
 import org.apache.oozie.test.XTestCase;
@@ -31,19 +32,45 @@ import java.io.OutputStream;
 import java.net.URI;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.oozie.ErrorCode;
+import org.apache.oozie.util.XConfiguration;
 
 public class TestHadoopAccessorService extends XTestCase {
 
     protected void setUp() throws Exception {
         super.setUp();
         new File(getTestCaseConfDir(), "hadoop-confx").mkdir();
-        new File(getTestCaseConfDir(), "action-confx").mkdir();
+        File actConfXDir = new File(getTestCaseConfDir(), "action-confx");
+        actConfXDir.mkdir();
+        new File(actConfXDir, "action").mkdir();
+        // Create the default action dir
+        new File(actConfXDir, "default").mkdir();
         InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-hadoop-config.xml");
         OutputStream os = new FileOutputStream(new File(getTestCaseConfDir() + "/hadoop-confx", "core-site.xml"));
         IOUtils.copyStream(is, os);
         is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-action-config.xml");
-        os = new FileOutputStream(new File(getTestCaseConfDir() + "/action-confx", "action.xml"));
+        os = new FileOutputStream(new File(actConfXDir, "action.xml"));
         IOUtils.copyStream(is, os);
+
+        is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-default-config.xml");
+        os = new FileOutputStream(new File(actConfXDir, "default.xml"));
+        IOUtils.copyStream(is, os);
+
+        is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-action-config-1.xml");
+        os = new FileOutputStream(new File(actConfXDir + "/action", "a-conf.xml"));
+        IOUtils.copyStream(is, os);
+
+        is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-action-config-2.xml");
+        os = new FileOutputStream(new File(actConfXDir + "/action", "b-conf.xml"));
+        IOUtils.copyStream(is, os);
+
+        is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-action-config-3.xml");
+        os = new FileOutputStream(new File(actConfXDir + "/action", "c-conf-3.xml"));
+        IOUtils.copyStream(is, os);
+
+        is = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-default-config-1.xml");
+        os = new FileOutputStream(new File(actConfXDir + "/default", "z-conf.xml"));
+        IOUtils.copyStream(is, os);
+
         setSystemProperty("oozie.service.HadoopAccessorService.hadoop.configurations",
                           "*=hadoop-conf,jt=hadoop-confx");
         setSystemProperty("oozie.service.HadoopAccessorService.action.configurations",
@@ -73,8 +100,43 @@ public class TestHadoopAccessorService extends XTestCase {
         assertNotNull(has.createActionDefaultConf("jt", "action"));
         assertNotNull(has.createActionDefaultConf("jt", "actionx"));
         assertNotNull(has.createActionDefaultConf("jtx", "action"));
-        assertEquals("action.bar", has.createActionDefaultConf("jt", "action").get("action.foo"));
         assertNull(has.createActionDefaultConf("*", "action").get("action.foo"));
+    }
+
+    public void testActionConfigurations() throws Exception {
+        Services services = Services.get();
+        HadoopAccessorService has = services.get(HadoopAccessorService.class);
+        assertNotNull(has);
+        XConfiguration conf = has.createActionDefaultConf("jt", "action");
+        assertNotNull(conf);
+
+        // Check that the param only in default.xml is still present
+        assertEquals("default.bar", conf.get("default.foo"));
+
+        // And a property that is present in one of the conf files in default dir
+        assertEquals("default.bus", conf.get("default.car"));
+
+        // Check that a default param is overridden by one of the action config files
+        assertEquals("action.bar", conf.get("action.foo"));
+
+        // Check that params from <action-dir>/action/conf files is still present
+        assertEquals("action.car", conf.get("action.boo"));
+        assertEquals("action.carcar", conf.get("oozie.launcher.action.booboo"));
+
+        /*
+            Check precedence - Order of precedence - 0 is the lowest.   Parameters in files of
+            lower precedence will be overridden by redefinitions in higher precedence files.
+
+            0 - All files in defaultdir/*.xml (sorted by lexical name)
+               Files with names lexically lower have lesser precedence than the following ones.
+            1 - default.xml
+            2 - All files in actiondir/*.xml (sort by lexical name)
+               Files with names lexically lower have lesser precedence than the following ones
+            3 - action.xml
+         */
+        assertEquals("100", conf.get("action.testprop"));
+        assertEquals("1", conf.get("default.testprop"));
+
     }
 
     public void testAccessor() throws Exception {
@@ -177,4 +239,55 @@ public class TestHadoopAccessorService extends XTestCase {
         has.checkSupportedFilesystem(new URI("/blah"));
     }
 
+    public void testValidateJobTracker() throws Exception {
+        HadoopAccessorService has = new HadoopAccessorService();
+        Configuration conf = new Configuration(false);
+        conf.set("oozie.service.HadoopAccessorService.jobTracker.whitelist", " ");
+        has.init(conf);
+        has.validateJobTracker("foo");
+        has.validateJobTracker("bar");
+        has.validateJobTracker("blah");
+        conf.set("oozie.service.HadoopAccessorService.jobTracker.whitelist", "foo,bar");
+        has.init(conf);
+        has.validateJobTracker("foo");
+        has.validateJobTracker("bar");
+        try {
+            has.validateJobTracker("blah");
+            fail("Should have gotten an exception");
+        } catch (HadoopAccessorException hae) {
+            assertEquals(ErrorCode.E0900, hae.getErrorCode());
+            // We have to check for either of these because Java 7 and 8 have a different order
+            String s1 = "E0900: JobTracker [blah] not allowed, not in Oozie's whitelist. Allowed values are: [foo, bar]";
+            String s2 = "E0900: JobTracker [blah] not allowed, not in Oozie's whitelist. Allowed values are: [bar, foo]";
+            assertTrue("expected:<" + s1 + "> or <" + s2 + "> but was:<" + hae.getMessage() + ">",
+                    s1.equals(hae.getMessage()) || s2.equals(hae.getMessage()));
+        }
+        has.destroy();
+    }
+
+    public void testValidateNameNode() throws Exception {
+        HadoopAccessorService has = new HadoopAccessorService();
+        Configuration conf = new Configuration(false);
+        conf.set("oozie.service.HadoopAccessorService.nameNode.whitelist", " ");
+        has.init(conf);
+        has.validateNameNode("foo");
+        has.validateNameNode("bar");
+        has.validateNameNode("blah");
+        conf.set("oozie.service.HadoopAccessorService.nameNode.whitelist", "foo,bar");
+        has.init(conf);
+        has.validateNameNode("foo");
+        has.validateNameNode("bar");
+        try {
+            has.validateNameNode("blah");
+            fail("Should have gotten an exception");
+        } catch (HadoopAccessorException hae) {
+            assertEquals(ErrorCode.E0901, hae.getErrorCode());
+            // We have to check for either of these because Java 7 and 8 have a different order
+            String s1 = "E0901: NameNode [blah] not allowed, not in Oozie's whitelist. Allowed values are: [foo, bar]";
+            String s2 = "E0901: NameNode [blah] not allowed, not in Oozie's whitelist. Allowed values are: [bar, foo]";
+            assertTrue("expected:<" + s1 + "> or <" + s2 + "> but was:<" + hae.getMessage() + ">",
+                    s1.equals(hae.getMessage()) || s2.equals(hae.getMessage()));
+        }
+        has.destroy();
+    }
 }

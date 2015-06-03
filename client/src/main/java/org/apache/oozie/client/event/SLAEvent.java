@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.client.event;
 
 import java.util.Date;
@@ -156,7 +157,7 @@ public abstract class SLAEvent extends Event {
      *
      * @return String slaConfig
      */
-    public abstract String getSlaConfig();
+    public abstract String getSLAConfig();
 
     /**
      * Get the actual start time of job for SLA

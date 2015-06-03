@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import java.io.IOException;
@@ -31,9 +32,11 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.mapred.JobConf;
+import org.apache.hadoop.security.AccessControlException;
 import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorException;
 import org.apache.oozie.service.HadoopAccessorService;
 import org.apache.oozie.service.Services;
@@ -50,8 +53,16 @@ public class FsActionExecutor extends ActionExecutor {
 
     public FsActionExecutor() {
         super("fs");
-        maxGlobCount = getOozieConf().getInt(LauncherMapper.CONF_OOZIE_ACTION_FS_GLOB_MAX,
-                LauncherMapper.GLOB_MAX_DEFAULT);
+        maxGlobCount = ConfigurationService.getInt(LauncherMapper.CONF_OOZIE_ACTION_FS_GLOB_MAX);
+    }
+
+    /**
+    * Initialize Action.
+    */
+    @Override
+    public void initActionType() {
+        super.initActionType();
+        registerError(AccessControlException.class.getName(), ActionExecutorException.ErrorType.ERROR, "FS014");
     }
 
     Path getPath(Element element, String attribute) {

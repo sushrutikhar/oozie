@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.util;
 
 import java.io.BufferedReader;
@@ -25,6 +26,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.PrivilegedExceptionAction;
+import java.util.Map;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
@@ -32,9 +34,14 @@ import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authentication.client.Authenticator;
 import org.apache.hadoop.security.authentication.client.KerberosAuthenticator;
 import org.apache.hadoop.security.authentication.client.PseudoAuthenticator;
+import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.Services;
 
 public class AuthUrlClient {
+
+    public static final String SERVER_SERVER_AUTH_TYPE = "oozie.server.authentication.type";
+
+    private static XLog LOG = XLog.getLog(AuthUrlClient.class);
 
     static private Class<? extends Authenticator> AuthenticatorClass = null;
 
@@ -76,7 +83,10 @@ public class AuthUrlClient {
         // Adapted from
         // org.apache.hadoop.security.authentication.server.AuthenticationFilter#init
         Class<? extends Authenticator> authClass;
-        String authName = Services.get().getConf().get("oozie.authentication.type");
+        String authName = ConfigurationService.get(SERVER_SERVER_AUTH_TYPE);
+
+        LOG.info("Oozie server-server authentication is " + authName);
+
         String authClassName;
         if (authName == null) {
             throw new IOException("Authentication type must be specified: simple|kerberos|<class>");
@@ -131,4 +141,22 @@ public class AuthUrlClient {
         }
         return reader;
     }
+
+    public static String getQueryParamString(Map<String, String[]> params) {
+        StringBuilder stringBuilder = new StringBuilder();
+        if (params == null || params.isEmpty()) {
+            return "";
+        }
+        for (String key : params.keySet()) {
+            if (!key.isEmpty() && params.get(key).length > 0) {
+                stringBuilder.append("&");
+                String value = params.get(key)[0]; // We don't support multi value.
+                stringBuilder.append(key);
+                stringBuilder.append("=");
+                stringBuilder.append(value);
+            }
+        }
+        return stringBuilder.toString();
+    }
+
 }

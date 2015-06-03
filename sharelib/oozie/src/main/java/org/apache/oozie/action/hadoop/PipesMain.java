@@ -6,15 +6,16 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import org.apache.hadoop.conf.Configuration;
@@ -31,9 +32,7 @@ public class PipesMain extends MapReduceMain {
     }
 
     @Override
-    protected RunningJob submitJob(Configuration actionConf) throws Exception {
-        JobConf jobConf = new JobConf();
-
+    protected void addActionConf(JobConf jobConf, Configuration actionConf) {
         String value = actionConf.get("oozie.pipes.map");
         if (value != null) {
             jobConf.setBoolean("hadoop.pipes.java.mapper", true);
@@ -66,7 +65,11 @@ public class PipesMain extends MapReduceMain {
             }
         }
 
-        addActionConf(jobConf, actionConf);
+        super.addActionConf(jobConf, actionConf);
+    }
+
+    @Override
+    protected RunningJob submitJob(JobConf jobConf) throws Exception {
 
         //propagate delegation related props from launcher job to MR job
         if (getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION") != null) {

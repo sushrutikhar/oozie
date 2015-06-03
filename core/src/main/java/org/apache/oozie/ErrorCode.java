@@ -15,12 +15,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie;
 
 import org.apache.oozie.util.XLog;
 
 public enum ErrorCode {
-    E0000(XLog.STD, "System property 'oozie.home.dir' not defined"),
+    E0000(XLog.STD, "System property ''oozie.home.dir'' not defined"),
     E0001(XLog.OPS, "Could not create runtime directory, {0}"),
     E0002(XLog.STD, "System is in safe mode"),
     E0003(XLog.OPS, "Oozie home directory must be an absolute path [{0}]"),
@@ -28,7 +29,7 @@ public enum ErrorCode {
 
     E0010(XLog.OPS, "Could not initialize log service, {0}"),
     E0011(XLog.OPS, "Log4j file must be a file name [{0}]"),
-    E0012(XLog.OPS, "Log4j file must be a '.properties' file [{0}]"),
+    E0012(XLog.OPS, "Log4j file must be a ''.properties'' file [{0}]"),
     E0013(XLog.OPS, "Log4j file [{0}] not found in configuration dir [{1}] neither in classpath"),
 
     E0020(XLog.OPS, "Environment variable {0} not defined"),
@@ -42,6 +43,7 @@ public enum ErrorCode {
     E0101(XLog.OPS, "Service [{0}] does not implement declared interface [{1}]"),
     E0102(XLog.OPS, "Could not instantiate service class [{0}], {1}"),
     E0103(XLog.OPS, "Could not load service classes, {0}"),
+    E0104(XLog.OPS, "Could not fully initialize service [{0}], {1}"),
     E0110(XLog.OPS, "Could not parse or validate EL definition [{0}], {1}"),
     E0111(XLog.OPS, "class#method not found [{0}#{1}]"),
     E0112(XLog.OPS, "class#method does not have PUBLIC or STATIC modifier [{0}#{1}]"),
@@ -54,7 +56,6 @@ public enum ErrorCode {
     E0131(XLog.OPS, "Could not read workflow schemas file/s, {0}"),
     E0140(XLog.OPS, "Could not access database, {0}"),
     E0141(XLog.OPS, "Could not create DataSource connection pool, {0}"),
-    E0150(XLog.OPS, "Actionexecutor type already registered [{0}]"),
     E0160(XLog.OPS, "Could not read admin users file [{0}], {1}"),
 
     E0300(XLog.STD, "Invalid content-type [{0}]"),
@@ -72,7 +73,7 @@ public enum ErrorCode {
     E0402(XLog.STD, "Invalid callback ID [{0}]"),
     E0403(XLog.STD, "Invalid callback data, {0}"),
     E0404(XLog.STD, "Only one of the properties are allowed [{0}]"),
-    E0405(XLog.STD, "Submission request doesn't have any application or lib path"),
+    E0405(XLog.STD, "Submission request doesn''t have any application or lib path"),
 
     E0420(XLog.STD, "Invalid jobs filter [{0}], {1}"),
     E0421(XLog.STD, "Invalid job filter [{0}], {1}"),
@@ -142,7 +143,7 @@ public enum ErrorCode {
     E0734(XLog.STD, "Invalid transition from node [{0}] to node [{1}] while using fork/join"),
     E0735(XLog.STD, "There was an invalid \"error to\" transition to node [{1}] while using fork/join"),
     E0736(XLog.STD, "Workflow definition length [{0}] exceeded maximum allowed length [{1}]"),
-    E0737(XLog.STD, "Invalid transition from node [{0}] to node [{1}] -- nodes of type 'end' are not allowed within Fork/Join"),
+    E0737(XLog.STD, "Invalid transition from node [{0}] to node [{1}] -- nodes of type ''end'' are not allowed within Fork/Join"),
     E0738(XLog.STD, "The following {0} parameters are required but were not defined and no default values are available: {1}"),
     E0739(XLog.STD, "Parameter name cannot be empty"),
     E0740(XLog.STD, "Invalid node type encountered (node [{0}])"),
@@ -150,6 +151,7 @@ public enum ErrorCode {
     E0742(XLog.STD, "No Fork for Join [{0}] to pair with"),
     E0743(XLog.STD, "Multiple \"ok to\" transitions to the same node, [{0}], are not allowed"),
     E0744(XLog.STD, "A fork, [{0}], is not allowed to have multiple transitions to the same node, [{1}]"),
+    E0755(XLog.STD, "Workflow Job Rerun Error: {0}"),
 
     E0800(XLog.STD, "Action it is not running its in [{1}] state, action [{0}]"),
     E0801(XLog.STD, "Workflow already running, workflow [{0}]"),
@@ -169,17 +171,20 @@ public enum ErrorCode {
     E0815(XLog.STD, "Action pending=[{0}], status=[{1}]. Skipping ActionCheck Execution"),
     E0816(XLog.STD, "Action pending=[{0}], status=[{1}]. Skipping ActionStart Execution"),
     E0817(XLog.STD, "The wf action [{0}] has been udated recently. Ignoring ActionCheck."),
-    E0818(XLog.STD, "Action [{0}] status is running but WF Job [{1}] status is [{2}]. Expected status is RUNNING."),
+    E0818(XLog.STD, "Action [{0}] status is running but WF Job [{1}] status is [{2}]. Expected status is RUNNING or SUSPENDED."),
     E0819(XLog.STD, "Unable to delete the temp dir of job WF Job [{0}]."),
     E0820(XLog.STD, "Action user retry max [{0}] is over system defined max [{1}], re-assign to use system max."),
+    E0821(XLog.STD, "Received early callback for action still in PREP state; will wait [{0}]ms and requeue up to [{1}] more times"),
+    E0822(XLog.STD, "Received early callback for action [{0}] while still in PREP state and exhausted all requeues"),
 
-    E0900(XLog.OPS, "Jobtracker [{0}] not allowed, not in Oozie's whitelist"),
-    E0901(XLog.OPS, "Namenode [{0}] not allowed, not in Oozie's whitelist"),
+    E0900(XLog.OPS, "JobTracker [{0}] not allowed, not in Oozie''s whitelist. Allowed values are: {1}"),
+    E0901(XLog.OPS, "NameNode [{0}] not allowed, not in Oozie''s whitelist. Allowed values are: {1}"),
     E0902(XLog.OPS, "Exception occured: [{0}]"),
     E0903(XLog.OPS, "Invalid JobConf, it has not been created by HadoopAccessorService"),
     E0904(XLog.STD, "Scheme [{0}] not supported in uri [{1}]"),
     E0905(XLog.STD, "Scheme not present in uri [{0}]"),
     E0906(XLog.STD, "URI parsing error : {0}"),
+    E0907(XLog.STD, "Failed to delete uri : {0}"),
 
     E1001(XLog.STD, "Could not read the coordinator job definition, {0}"),
     E1002(XLog.STD, "Invalid coordinator application URI [{0}], {1}"),
@@ -203,10 +208,18 @@ public enum ErrorCode {
     E1020(XLog.STD, "Could not kill coord job, this job either finished successfully or does not exist , [{0}]"),
     E1021(XLog.STD, "Coord Action Input Check Error: {0}"),
     E1022(XLog.STD, "Cannot delete running/completed coordinator action: [{0}]"),
+    E1023(XLog.STD, "Coord Job update Error: [{0}]"),
+    E1024(XLog.STD, "Cannot run ignore command: [{0}]"),
+    E1025(XLog.STD, "Coord status transit error: [{0}]"),
+    E1026(XLog.STD, "SLA alert update command failed: {0}"),
+    E1027(XLog.STD, "SLA change command failed. {0}"),
+
 
     E1100(XLog.STD, "Command precondition does not hold before execution, [{0}]"),
 
     E1101(XLog.STD, "SLA <{0}> cannot be empty."),
+
+    E1102(XLog.STD, "Invalid operation [{0}] for bulk command"),
 
     E1201(XLog.STD, "State [{0}] is invalid for job [{1}]."),
 
@@ -229,6 +242,11 @@ public enum ErrorCode {
     E1317(XLog.STD, "Invalid bundle job change value {0}, {1}"),
     E1318(XLog.STD, "No coord jobs for the bundle=[{0}], fail the bundle"),
     E1319(XLog.STD, "Invalid bundle coord job namespace, [{0}]"),
+    E1320(XLog.STD, "Bundle Job change error, [{0}]"),
+    E1321(XLog.STD, "Error evaluating coord name, [{0}]"),
+    E1322(XLog.STD, "Bundle status transit error: [{0}]"),
+    E1323(XLog.STD, "Could not kill bundle job, this job either finished successfully or does not exist , [{0}]"),
+
 
     E1400(XLog.STD, "doAs (proxyuser) failure"),
 

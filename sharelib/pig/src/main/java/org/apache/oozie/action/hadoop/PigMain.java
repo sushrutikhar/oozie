@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package org.apache.oozie.action.hadoop;
 
 import org.apache.pig.Main;
@@ -67,8 +68,6 @@ public class PigMain extends LauncherMain {
         DISALLOWED_PIG_OPTIONS.add("-logfile");
         DISALLOWED_PIG_OPTIONS.add("-r");
         DISALLOWED_PIG_OPTIONS.add("-dryrun");
-        DISALLOWED_PIG_OPTIONS.add("-x");
-        DISALLOWED_PIG_OPTIONS.add("-exectype");
         DISALLOWED_PIG_OPTIONS.add("-P");
         DISALLOWED_PIG_OPTIONS.add("-propertyFile");
     }
@@ -96,6 +95,7 @@ public class PigMain extends LauncherMain {
         }
 
         actionConf.addResource(new Path("file:///", actionXml));
+        setYarnTag(actionConf);
 
         Properties pigProperties = new Properties();
         for (Map.Entry<String, String> entry : actionConf) {
@@ -106,6 +106,7 @@ public class PigMain extends LauncherMain {
         String jobTokenFile = getFilePathFromEnv("HADOOP_TOKEN_FILE_LOCATION");
         if (jobTokenFile != null) {
             pigProperties.setProperty("mapreduce.job.credentials.binary", jobTokenFile);
+            pigProperties.setProperty("tez.credentials.path", jobTokenFile);
             System.out.println("------------------------");
             System.out.println("Setting env property for mapreduce.job.credentials.binary to:"
                     + jobTokenFile);
@@ -170,6 +171,7 @@ public class PigMain extends LauncherMain {
             hadoopProps.load(log4jFile.openStream());
             hadoopProps.setProperty("log4j.rootLogger", pigLogLevel + ", A, B");
             hadoopProps.setProperty("log4j.logger.org.apache.pig", pigLogLevel + ", A, B");
+            hadoopProps.setProperty("log4j.additivity.org.apache.pig", "false");
             hadoopProps.setProperty("log4j.appender.A", "org.apache.log4j.ConsoleAppender");
             hadoopProps.setProperty("log4j.appender.A.layout", "org.apache.log4j.PatternLayout");
             hadoopProps.setProperty("log4j.appender.A.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
@@ -234,10 +236,7 @@ public class PigMain extends LauncherMain {
         // So retrieving hadoop Ids here
         File file = new File(System.getProperty(EXTERNAL_CHILD_IDS));
         if (!file.exists()) {
-            Properties props = getHadoopJobIds(logFile, PIG_JOB_IDS_PATTERNS);
-            writeExternalData(props.getProperty(HADOOP_JOBS), file);
-            System.out.println(" Hadoop Job IDs executed by Pig: " + props.getProperty(HADOOP_JOBS));
-            System.out.println();
+            writeExternalChildIDs(logFile, PIG_JOB_IDS_PATTERNS, "Pig");
         }
     }
 

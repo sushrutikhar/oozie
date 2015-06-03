@@ -16,6 +16,7 @@
  * limitations under the License.
  */
 
+
 package org.apache.oozie.executor.jpa;
 
 import java.sql.Timestamp;
@@ -43,7 +44,7 @@ public class CoordJobGetActionModifiedDateForRangeJPAExecutor implements JPAExec
 
     @Override
     public String getName() {
-        return "CoordJobGetActionIdsForDateRangeJPAExecutor";
+        return "CoordJobGetActionModifiedDateForRangeJPAExecutor";
     }
 
     @Override
