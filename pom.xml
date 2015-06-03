@@ -168,6 +168,11 @@
             <name>Releases</name>
             <url>http://maven.scm.corp.inmobi.com/content/repositories/releases/</url>
         </repository>
+        <repository>
+            <id>hotton releases</id>
+            <name>hotton Releases</name>
+            <url>http://repo.hortonworks.com/content/repositories/releases/</url>
+        </repository>
     </repositories>
 
     <pluginRepositories>
@@ -353,7 +358,7 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-auth</artifactId>
-                <version>${hadooplib.version}</version>
+                <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -496,7 +501,7 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-distcp</artifactId>
-                <version>${hadooplib.version}</version>
+                <version>${project.version}</version>
                 <scope>provided</scope>
             </dependency>
 
@@ -1457,7 +1462,7 @@
             <dependency>
                 <groupId>org.apache.oozie</groupId>
                 <artifactId>oozie-hadoop-utils</artifactId>
-                <version>${oozie.hadoop-utils.version}</version>
+                <version>${project.version}</version>
             </dependency>
 
             <dependency>
@@ -1475,7 +1480,7 @@
             <dependency>
                 <groupId>org.apache.falcon</groupId>
                 <artifactId>falcon-oozie-el-extension</artifactId>
-                <version>0.4.1-incubating</version>
+                <version>0.6-incubating</version>
             </dependency>
 
             <dependency>
