@@ -1798,7 +1798,7 @@
         <profile>
             <id>hadoop-1</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <activeByDefault>false</activeByDefault>
             </activation>
             <properties>
                 <hadoop.version>1.2.1</hadoop.version>
@@ -1822,7 +1822,7 @@
         <profile>
             <id>hadoop-2</id>
             <activation>
-                <activeByDefault>false</activeByDefault>
+                <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
                 <hadoop.version>2.4.0</hadoop.version>
