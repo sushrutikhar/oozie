@@ -49,7 +49,12 @@ public class LauncherMainHadoopUtils {
         System.out.println("Fetching child yarn jobs");
         long startTime = 0L;
         try {
-            startTime = Long.parseLong(System.getProperty(OOZIE_JOB_LAUNCH_TIME));
+            if(System.getProperty(OOZIE_JOB_LAUNCH_TIME) != null) {
+                startTime = Long.parseLong(System.getProperty(OOZIE_JOB_LAUNCH_TIME));
+            }
+            else {
+                startTime = Long.parseLong(actionConf.get(OOZIE_JOB_LAUNCH_TIME));
+            }
         } catch(NumberFormatException nfe) {
             throw new RuntimeException("Could not find Oozie job launch time", nfe);
         }

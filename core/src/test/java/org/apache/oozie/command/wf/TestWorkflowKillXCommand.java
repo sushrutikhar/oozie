@@ -18,10 +18,17 @@
 
 package org.apache.oozie.command.wf;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.Reader;
+import java.io.Writer;
 import java.util.Date;
+import java.util.Properties;
 
+import org.apache.hadoop.fs.Path;
 import org.apache.oozie.WorkflowActionBean;
 import org.apache.oozie.WorkflowJobBean;
+import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
 import org.apache.oozie.client.WorkflowJob;
 import org.apache.oozie.command.CommandException;
@@ -31,8 +38,11 @@ import org.apache.oozie.service.JPAService;
 import org.apache.oozie.service.LiteWorkflowStoreService;
 import org.apache.oozie.service.Services;
 import org.apache.oozie.service.UUIDService;
+import org.apache.oozie.service.XLogService;
+import org.apache.oozie.local.LocalOozie;
 import org.apache.oozie.service.UUIDService.ApplicationType;
 import org.apache.oozie.test.XDataTestCase;
+import org.apache.oozie.util.IOUtils;
 import org.apache.oozie.workflow.WorkflowInstance;
 
 public class TestWorkflowKillXCommand extends XDataTestCase {
@@ -43,12 +53,15 @@ public class TestWorkflowKillXCommand extends XDataTestCase {
         super.setUp();
         services = new Services();
         services.init();
+        setSystemProperty(XLogService.LOG4J_FILE, "oozie-log4j.properties");
+        LocalOozie.start();
     }
 
     @Override
     protected void tearDown() throws Exception {
-        services.destroy();
         super.tearDown();
+        services.destroy();
+        LocalOozie.stop();
     }
 
     /**
@@ -104,6 +117,56 @@ public class TestWorkflowKillXCommand extends XDataTestCase {
         assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.RUNNING);
 
         new KillXCommand(job.getId()).call();
+
+        job = jpaService.execute(wfJobGetCmd);
+        action = jpaService.execute(wfActionGetCmd);
+        assertEquals(job.getStatus(), WorkflowJob.Status.KILLED);
+        assertEquals(action.getStatus(), WorkflowAction.Status.KILLED);
+        wfInstance = job.getWorkflowInstance();
+        assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.KILLED);
+    }
+
+    /**
+     * Test : kill RUNNING job and RUNNING action successfully.
+     *
+     * @throws Exception
+     */
+    public void testKillWfActionAndChildJob() throws Exception {
+        WorkflowJobBean job = this.addRecordToWfJobTable(WorkflowJob.Status.RUNNING, WorkflowInstance.Status.RUNNING);
+        WorkflowActionBean action = this.addRecordToWfActionTable(job.getId(), "1", WorkflowAction.Status.RUNNING);
+
+        JPAService jpaService = Services.get().get(JPAService.class);
+        assertNotNull(jpaService);
+        WorkflowJobGetJPAExecutor wfJobGetCmd = new WorkflowJobGetJPAExecutor(job.getId());
+        WorkflowActionGetJPAExecutor wfActionGetCmd = new WorkflowActionGetJPAExecutor(action.getId());
+
+        job = jpaService.execute(wfJobGetCmd);
+        action = jpaService.execute(wfActionGetCmd);
+        assertEquals(job.getStatus(), WorkflowJob.Status.RUNNING);
+        assertEquals(action.getStatus(), WorkflowAction.Status.RUNNING);
+        WorkflowInstance wfInstance = job.getWorkflowInstance();
+        assertEquals(wfInstance.getStatus(), WorkflowInstance.Status.RUNNING);
+
+        Reader reader = IOUtils.getResourceAsReader("rerun-wf.xml", -1);
+        Writer writer = new FileWriter(new File(getTestCaseDir(), "workflow.xml"));
+        IOUtils.copyCharStream(reader, writer);
+
+        Path path = getFsTestCaseDir();
+        getFileSystem().create(new Path(path, "p2"));
+        final OozieClient wfClient = LocalOozie.getClient();
+
+        Properties conf = wfClient.createConfiguration();
+        conf.setProperty(OozieClient.APP_PATH, getTestCaseFileUri("workflow.xml"));
+        conf.setProperty(OozieClient.USER_NAME, getTestUser());
+        conf.setProperty("nnbase", path.toString());
+        conf.setProperty("base", path.toUri().getPath());
+        final String jobId = job.getId();
+        wfClient.kill(job.getId());
+        waitFor(15 * 1000, new Predicate() {
+            public boolean evaluate() throws Exception {
+                return wfClient.getJobInfo(jobId).getStatus() == WorkflowJob.Status.KILLED;
+            }
+        });
 
         job = jpaService.execute(wfJobGetCmd);
         action = jpaService.execute(wfActionGetCmd);
