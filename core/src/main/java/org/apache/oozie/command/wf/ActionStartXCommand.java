@@ -156,6 +156,18 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
         }
     }
 
+    public static String getActionYarnTag(Configuration conf, WorkflowJobBean wfJob, WorkflowAction wfAction) {
+        String tag;
+        if (conf.get(OOZIE_ACTION_YARN_TAG) != null) {
+            tag = conf.get(OOZIE_ACTION_YARN_TAG) + "@" + wfAction.getName();
+        } else if (wfJob.getParentId() != null) {
+            tag = wfJob.getParentId() + "@" + wfAction.getName();
+        } else {
+            tag = wfAction.getId();
+        }
+        return tag;
+    }
+
     @Override
     protected Void execute() throws CommandException {
 
@@ -239,13 +251,7 @@ public class ActionStartXCommand extends ActionXCommand<Void> {
                 For Coord job, tag = coord-action-id@action-name (if not part of sub flow), else
                 coord-action-id@subflow-action-name@action-name.
                  */
-                if (conf.get(OOZIE_ACTION_YARN_TAG) != null) {
-                    context.setVar(OOZIE_ACTION_YARN_TAG, conf.get(OOZIE_ACTION_YARN_TAG) + "@" + wfAction.getName());
-                } else if (wfJob.getParentId() != null) {
-                    context.setVar(OOZIE_ACTION_YARN_TAG, wfJob.getParentId() + "@" + wfAction.getName());
-                } else {
-                    context.setVar(OOZIE_ACTION_YARN_TAG, wfAction.getId());
-                }
+                context.setVar(OOZIE_ACTION_YARN_TAG, getActionYarnTag(conf, wfJob, wfAction));
 
                 executor.start(context, wfAction);
                 cron.stop();
