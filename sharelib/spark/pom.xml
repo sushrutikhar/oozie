@@ -35,6 +35,7 @@
     <properties>
         <sharelib.action.postfix>spark</sharelib.action.postfix>
         <sharelib.transitive.filtering>false</sharelib.transitive.filtering>
+		<maven.javadoc.failOnError>false</maven.javadoc.failOnError>
     </properties>
 
     <dependencies>
