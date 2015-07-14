@@ -132,7 +132,7 @@
                             <type>file</type>
                             <mapper>
                                 <type>perm</type>
-                                <prefix>deb</prefix>
+                                <prefix>/opt/inmobi/oozie-${project.version}/</prefix>
                             </mapper>
                         </data>
                     </dataSet>
