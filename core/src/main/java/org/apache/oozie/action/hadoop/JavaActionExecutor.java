@@ -57,6 +57,7 @@ import org.apache.oozie.action.ActionExecutor;
 import org.apache.oozie.action.ActionExecutorException;
 import org.apache.oozie.client.OozieClient;
 import org.apache.oozie.client.WorkflowAction;
+import org.apache.oozie.command.coord.CoordActionStartXCommand;
 import org.apache.oozie.command.wf.ActionStartXCommand;
 import org.apache.oozie.service.ConfigurationService;
 import org.apache.oozie.service.HadoopAccessorException;
@@ -895,8 +896,16 @@ public class JavaActionExecutor extends ActionExecutor {
                 launcherTag = action.getId();
             }
 
+            long launcherTime = System.currentTimeMillis();
+            if (context.getProtoActionConf().get(CoordActionStartXCommand.OOZIE_COORD_ACTION_NOMINAL_TIME) != null ) {
+                launcherTime = Long.parseLong(context.getProtoActionConf()
+                        .get(CoordActionStartXCommand.OOZIE_COORD_ACTION_NOMINAL_TIME));
+            } else if (context.getWorkflow().getCreatedTime() != null) {
+                launcherTime = context.getWorkflow().getCreatedTime().getTime();
+            }
             // Properties for when a launcher job's AM gets restarted
-            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf, actionConf, launcherTag);
+            LauncherMapperHelper.setupYarnRestartHandling(launcherJobConf, actionConf, launcherTag, launcherTime);
+
 
             String actionShareLibProperty = actionConf.get(ACTION_SHARELIB_FOR + getType());
             if (actionShareLibProperty != null) {
