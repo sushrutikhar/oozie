@@ -366,7 +366,7 @@ public class CoordRerunXCommand extends RerunTransitionXCommand<CoordinatorActio
             if (checkAllActionsRunnable(coordActions)) {
                 for (CoordinatorActionBean coordAction : coordActions) {
                     String actionXml = coordAction.getActionXml();
-                    if (!noCleanup) {
+                    if (!noCleanup && !failed) {
                         Element eAction = XmlUtils.parseXml(actionXml);
                         cleanupOutputEvents(eAction);
                     }
