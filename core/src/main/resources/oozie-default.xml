@@ -163,7 +163,8 @@
             org.apache.oozie.service.ProxyUserService,
             org.apache.oozie.service.XLogStreamingService,
             org.apache.oozie.service.JvmPauseMonitorService,
-            org.apache.oozie.service.SparkConfigurationService
+            org.apache.oozie.service.SparkConfigurationService,
+            org.apache.oozie.service.CallbackActionService
         </value>
         <description>
             All services to be created and managed by Oozie Services singleton.
@@ -1475,7 +1476,8 @@
             distcp-action-0.1.xsd,distcp-action-0.2.xsd,
             oozie-sla-0.1.xsd,oozie-sla-0.2.xsd,
             hive2-action-0.1.xsd,
-            spark-action-0.1.xsd
+            spark-action-0.1.xsd,
+            callback-action-0.1.xsd
         </value>
         <description>
             List of schemas for workflows (separated by commas).
@@ -1613,7 +1615,8 @@
             org.apache.oozie.action.ssh.SshActionExecutor,
             org.apache.oozie.action.oozie.SubWorkflowActionExecutor,
             org.apache.oozie.action.email.EmailActionExecutor,
-            org.apache.oozie.action.hadoop.SparkActionExecutor
+            org.apache.oozie.action.hadoop.SparkActionExecutor,
+            org.apache.oozie.action.callback.CallbackActionExecutor
         </value>
         <description>
             List of ActionExecutors classes (separated by commas).
@@ -2576,4 +2579,45 @@
             Set it false if there is any security concern.
         </description>
     </property>
+
+    <property>
+        <name>oozie.action.callback.jms.naming.factory.initial</name>
+        <value>org.apache.activemq.jndi.ActiveMQInitialContextFactory</value>
+        <description>
+            This value is for callback action. By default keeping it for Active MQ server.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.callback.keepalive.secs</name>
+        <value>15</value>
+        <description>
+            It enables keep-alive packets for a socket connection for specified number of seconds.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.callback.http.connection.timeout.secs</name>
+        <value>10</value>
+        <description>
+            Determines the timeout in seconds until a connection is established.
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.callback.http.socket.timeout.secs</name>
+        <value>10</value>
+        <description>
+            Defines the socket timeout in seconds, which is the timeout for waiting for data
+        </description>
+    </property>
+
+    <property>
+        <name>oozie.action.callback.http.pool.size</name>
+        <value>10</value>
+        <description>
+               Pool size for callback action.
+        </description>
+    </property>
+
 </configuration>

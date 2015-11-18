@@ -1,0 +1,122 @@
+<noautolink>
+
+[[index][::Go back to Oozie Documentation Index::]]
+
+-----
+
+---+!! Oozie Callback Action Extension
+
+%TOC%
+
+#CallbackAction
+---++++ callback action
+
+The =callback= action allows sending notification from workflow application to external server. It has support for
+=http(s)= and =jms= server. Callback action must provide a =url=,a =method=, a =subject=, =arg= and =capture-output= (optional).
+
+The callback action is executed synchronously, and the workflow job will wait until notification has sent to the server
+before continuing to the next action. In case of jms =queue/topic= name must be provided in =url=
+
+*Syntax:*
+
+<verbatim>
+<workflow-app name="[WF-DEF-NAME]" xmlns="uri:oozie:workflow:0.5">
+    ...
+    <action name="[NODE-NAME]">
+        <callback xmlns="uri:oozie:callback-action:0.1">
+            <url>[URL]?[queue/topic]=[queuename/topicname]</url>
+            <method>[QUEUE_OFFER/TOPIC_PUBLISH/HTTP_POST/HTTP_GET]</method>
+            <arg>
+            ...
+            <property>
+            <name>[NAME]</name>
+            <value>[VALUE]</value>
+            </property>
+            ...
+            </arg>
+            <capture-output/> <!-- capture-output is optional -->
+        </callback>
+        <ok to="[NODE-NAME]"/>
+        <error to="[NODE-NAME]"/>
+    </action>
+    ...
+</workflow-app>
+</verbatim>
+
+The =url= is used to specify server url of http(s) or jms and the queuename or topic name.
+
+The =method= is used to specify QUEUE_OFFER/TOPIC_PUBLISH method for jms and HTTP_POST/HTTP_GET for http server.
+
+The =arg= is used to send the multiple set of =property= . A =property= contains a =name= and a =value=.
+
+The =capture-output= is used to fetch =response-code= and =status-code= in case of http notification.
+
+*Example:*
+
+<verbatim>
+<workflow-app name="[WF-DEF-NAME]" xmlns="uri:oozie:workflow:0.5">
+    ...
+    <action name="[NODE-NAME]">
+        <callback xmlns="uri:oozie:callback-action:0.1">
+            <url>tcp://localhost:61616?queue=foo</url>
+            <method>QUEUE_OFFER</method>
+            <arg>
+            <property>
+            <name>key1</name>
+            <value>value1</value>
+            </property>
+            <property>
+            <name>key2</name>
+            <value>value2</value>
+            </property>
+            </arg>
+        </callback>
+        <ok to="[NODE-NAME]"/>
+        <error to="[NODE-NAME]"/>
+    </action>
+    ...
+</workflow-app>
+</verbatim>
+
+In the above example sent notification to jms server (tcp://localhost:61616). It produced two keys values pair and sent
+to foo server.
+
+---+++ AE.A Appendix A, Callback XML-Schema
+
+<verbatim>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:callback="uri:oozie:callback-action:0.1" elementFormDefault="qualified"
+           targetNamespace="uri:oozie:callback-action:0.1">
+
+    <xs:element name="callback" type="callback:ACTION"/>
+
+    <xs:complexType name="ACTION">
+        <xs:sequence>
+            <xs:element name="url" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="method" type="xs:string" minOccurs="1" maxOccurs="1"/>
+            <xs:element name="arg" type="callback:ARG" minOccurs="1" maxOccurs="unbounded"/>
+            <xs:element name="capture-output" type="callback:FLAG" minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="ARG">
+        <xs:sequence>
+            <xs:element name="property" minOccurs="1" maxOccurs="unbounded">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element name="name" minOccurs="1" maxOccurs="1" type="xs:string"/>
+                        <xs:element name="value" minOccurs="1" maxOccurs="1" type="xs:string"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="FLAG"/>
+
+</xs:schema>
+</verbatim>
+
+[[index][::Go back to Oozie Documentation Index::]]
+
+</noautolink>

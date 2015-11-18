@@ -1285,7 +1285,7 @@ commands.purge.executions : 1
 
 VARIABLES
 ---------
-configuration.action.types : [hive, shell, :START:, :FORK:, switch, spark, ssh, hive2, pig, :END:, email, distcp, :KILL:, sub-workflow, fs, java, :JOIN:, sqoop, map-reduce]
+configuration.action.types : [hive, shell, :START:, :FORK:, switch, spark, ssh, hive2, pig, :END:, email, distcp, :KILL:, sub-workflow, fs, java, :JOIN:, sqoop, map-reduce, callback]
 configuration.config.dir : /Users/rkanter/dev/oozie/conf
 configuration.config.file : /Users/rkanter/dev/oozie/conf/oozie-site.xml
 ...
@@ -1342,7 +1342,7 @@ commands.purge.executions : 1
 
 GAUGES
 ------
-configuration.action.types : [hive, shell, :START:, :FORK:, switch, spark, ssh, hive2, pig, :END:, email, distcp, :KILL:, sub-workflow, fs, java, :JOIN:, sqoop, map-reduce]
+configuration.action.types : [hive, shell, :START:, :FORK:, switch, spark, ssh, hive2, pig, :END:, email, distcp, :KILL:, sub-workflow, fs, java, :JOIN:, sqoop, map-reduce, callback]
 configuration.config.dir : /Users/rkanter/dev/oozie/conf
 configuration.config.file : /Users/rkanter/dev/oozie/conf/oozie-site.xml
 ...
