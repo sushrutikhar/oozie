@@ -16,18 +16,16 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	     <parent>
 	         <groupId>com.inmobi</groupId>
 	         <artifactId>inmobi-master-pom</artifactId>
 	         <version>1.0.4</version>
 	     </parent>
-
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-main</artifactId>
-    <version>4.3.0-SNAPSHOT</version>
+    <version>4.3.11-SNAPSHOT</version>
     <description>Apache Oozie Main</description>
     <name>Apache Oozie Main</name>
     <packaging>pom</packaging>
@@ -67,7 +65,7 @@
 
         <maven.test.redirectTestOutputToFile>true</maven.test.redirectTestOutputToFile>
         <maven.test.java.opts>-Xmx1024m -da -XX:MaxPermSize=512m</maven.test.java.opts>
-        <maven.javadoc.opts></maven.javadoc.opts>
+        <maven.javadoc.opts />
 
         <oozie.data.dir>${oozie.test.dir}</oozie.data.dir>
         <oozie.test.db.host>localhost</oozie.test.db.host>
@@ -89,7 +87,7 @@
          <!-- Sharelib component versions -->
          <hive.version>0.13.1</hive.version>
          <pig.version>0.12.1</pig.version>
-         <pig.classifier></pig.classifier>
+         <pig.classifier />
          <sqoop.version>1.4.3</sqoop.version>
          <spark.version>1.3.1</spark.version>
          <spark.guava.version>14.0.1</spark.guava.version>
@@ -1821,7 +1819,7 @@
                             <source>1.6</source>
                             <target>1.6</target>
                             <compilerArguments>
-                                <Xlint/>
+                                <Xlint />
                                 <Xmaxwarns>9999</Xmaxwarns>
                             </compilerArguments>
                         </configuration>
@@ -1837,7 +1835,7 @@
             <properties>
                 <hadoop.version>1.2.1</hadoop.version>
                 <hadoop.majorversion>1</hadoop.majorversion>
-                <pig.classifier></pig.classifier>
+                <pig.classifier />
                 <sqoop.classifier>hadoop100</sqoop.classifier>
             </properties>
         </profile>
