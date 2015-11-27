@@ -28,10 +28,6 @@
             <source>${basedir}/target/classes/sharelib.properties</source>
             <outputDirectory>/share/lib</outputDirectory>
         </file>
-        <file>
-            <source>${basedir}/spark/target/oozie-sharelib-spark-uber-${project.version}.jar</source>
-            <outputDirectory>/share/lib/spark</outputDirectory>
-        </file>
     </files>
 
     <fileSets>
@@ -67,6 +63,10 @@
            <directory>${basedir}/hive2/target/partial-sharelib</directory>
            <outputDirectory>/</outputDirectory>
        </fileSet>
+        <fileSet>
+            <directory>${basedir}/spark/target/partial-sharelib</directory>
+            <outputDirectory>/</outputDirectory>
+        </fileSet>
     </fileSets>
 
 </assembly>
