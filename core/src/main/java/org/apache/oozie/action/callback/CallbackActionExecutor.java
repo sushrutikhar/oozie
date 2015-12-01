@@ -27,6 +27,7 @@ import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.params.CoreConnectionPNames;
@@ -45,6 +46,8 @@ import org.jdom.Namespace;
 import javax.jms.JMSException;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -145,12 +148,17 @@ public class CallbackActionExecutor extends ActionExecutor{
 
     protected HttpResponse httpGetMethod(String urlString, List<Pair<String,String>> argumentList) throws IOException {
         HttpClient client = getHttpClient();
-        HttpGet httpGet = new HttpGet(urlString);
-        HttpParams httpParams = client.getParams();
+        List<NameValuePair> params = new ArrayList<NameValuePair>();
         for (Pair pair : argumentList) {
-            httpParams.setParameter(pair.getFist().toString(), pair.getSecond().toString());
+            params.add(new BasicNameValuePair(pair.getFist().toString(), pair.getSecond().toString()));
         }
-        httpGet.setParams(httpParams);
+        URI uri;
+        try {
+            uri = new URI( urlString + "?" + URLEncodedUtils.format(params, "utf-8"));
+        } catch (URISyntaxException e) {
+            throw new IOException(e);
+        }
+        HttpGet httpGet = new HttpGet(uri);
         HttpResponse response = null;
         try {
             response = client.execute(httpGet);
