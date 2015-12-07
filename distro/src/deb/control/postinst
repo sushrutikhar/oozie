@@ -177,7 +177,7 @@ else
 
     sudo rm -r $OOZIE_CURRENT/conf/hadoop-conf || true
     cd $OOZIE_CURRENT/conf
-    sudo ln -s $HADOOP_CONF hadoop-conf
+    sudo cp -r $HADOOP_CONF hadoop-conf
 
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/pig/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/oozie/
