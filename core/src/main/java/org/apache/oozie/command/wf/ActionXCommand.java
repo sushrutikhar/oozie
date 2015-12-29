@@ -234,7 +234,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
 	 * In case of action error increment the error count for instrumentation
 	 */
     private void incrActionErrorCounter(String type, String error, int count) {
-        getInstrumentation().incr(INSTRUMENTATION_GROUP, type + "#ex." + error, count);
+        getInstrumentation().incr(INSTRUMENTATION_GROUP, type + ".ex." + error, count);
     }
 
 	/**
@@ -242,7 +242,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
 	 * many times the action was executed since the start Oozie server
 	 */
     protected void incrActionCounter(String type, int count) {
-        getInstrumentation().incr(INSTRUMENTATION_GROUP, type + "#" + getName(), count);
+        getInstrumentation().incr(INSTRUMENTATION_GROUP, type + "." + getName(), count);
     }
 
 	/**
@@ -250,7 +250,7 @@ public abstract class ActionXCommand<T> extends WorkflowXCommand<Void> {
 	 * group
 	 */
     protected void addActionCron(String type, Instrumentation.Cron cron) {
-        getInstrumentation().addCron(INSTRUMENTATION_GROUP, type + "#" + getName(), cron);
+        getInstrumentation().addCron(INSTRUMENTATION_GROUP, type + "." + getName(), cron);
     }
 
     /*
