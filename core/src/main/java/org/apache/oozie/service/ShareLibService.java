@@ -142,26 +142,26 @@ public class ShareLibService implements Service, Instrumentable {
                 LOG.error(se);
             }
         }
-        Runnable purgeLibsRunnable = new Runnable() {
-            @Override
-            public void run() {
-                System.out.flush();
-                try {
-                    // Only one server should purge sharelib
-                    if (Services.get().get(JobsConcurrencyService.class).isLeader()) {
-                        final Date current = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime();
-                        purgeLibs(fs, LAUNCHER_LIB_PREFIX, current);
-                        purgeLibs(fs, SHARE_LIB_PREFIX, current);
-                    }
-                }
-                catch (IOException e) {
-                    LOG.error("There was an issue purging the sharelib", e);
-                }
-            }
-        };
-        services.get(SchedulerService.class).schedule(purgeLibsRunnable, 10,
-                ConfigurationService.getInt(services.getConf(), PURGE_INTERVAL) * 60 * 60 * 24,
-                SchedulerService.Unit.SEC);
+//        Runnable purgeLibsRunnable = new Runnable() {
+//            @Override
+//            public void run() {
+//                System.out.flush();
+//                try {
+//                    // Only one server should purge sharelib
+//                    if (Services.get().get(JobsConcurrencyService.class).isLeader()) {
+//                        final Date current = Calendar.getInstance(TimeZone.getTimeZone("GMT")).getTime();
+//                        purgeLibs(fs, LAUNCHER_LIB_PREFIX, current);
+//                        purgeLibs(fs, SHARE_LIB_PREFIX, current);
+//                    }
+//                }
+//                catch (IOException e) {
+//                    LOG.error("There was an issue purging the sharelib", e);
+//                }
+//            }
+//        };
+//        services.get(SchedulerService.class).schedule(purgeLibsRunnable, 10,
+//                ConfigurationService.getInt(services.getConf(), PURGE_INTERVAL) * 60 * 60 * 24,
+//                SchedulerService.Unit.SEC);
     }
 
     /**
