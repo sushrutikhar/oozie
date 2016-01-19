@@ -43,7 +43,7 @@
     </organization>
 
     <properties>
-        <targetJavaVersion>1.6</targetJavaVersion>
+        <targetJavaVersion>1.7</targetJavaVersion>
 
         <distMgmtSnapshotsName>Apache Development Snapshot Repository</distMgmtSnapshotsName>
         <distMgmtSnapshotsUrl>https://repository.apache.org/content/repositories/snapshots</distMgmtSnapshotsUrl>
