@@ -154,10 +154,6 @@ public class SparkMain extends LauncherMain {
             sparkArgs.add(DIST_FILES + sparkJars);
         }
 
-        if (!sparkArgs.contains(VERBOSE_OPTION)) {
-            sparkArgs.add(VERBOSE_OPTION);
-        }
-
         sparkArgs.add(jarPath);
 
         for (String arg : args) {
