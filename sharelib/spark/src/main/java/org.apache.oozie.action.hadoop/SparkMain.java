@@ -32,7 +32,6 @@ public class SparkMain extends LauncherMain {
     private static final String MODE_OPTION = "--deploy-mode";
     private static final String JOB_NAME_OPTION = "--name";
     private static final String CLASS_NAME_OPTION = "--class";
-    private static final String VERBOSE_OPTION = "--verbose";
     private static final String EXECUTOR_CLASSPATH = "spark.executor.extraClassPath=";
     private static final String DRIVER_CLASSPATH = "spark.driver.extraClassPath=";
     private static final String DIST_FILES = "spark.yarn.dist.files=";
@@ -152,10 +151,6 @@ public class SparkMain extends LauncherMain {
         if (yarnClientMode && !addedDistFiles && sparkJars != null) {
             sparkArgs.add("--conf");
             sparkArgs.add(DIST_FILES + sparkJars);
-        }
-
-        if (!sparkArgs.contains(VERBOSE_OPTION)) {
-            sparkArgs.add(VERBOSE_OPTION);
         }
 
         sparkArgs.add(jarPath);
