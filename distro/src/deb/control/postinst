@@ -115,12 +115,14 @@ if [ "$DEPLOYMENT_MODE" == "ONLY_SHARELIB" ]; then
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/pig/
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/oozie/
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/hive/
+    sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/hive2/
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/spark/
     cd $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION
 
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/oozie/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/oozie/ || true
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/pig/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/pig/ || true
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/hive/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/hive/ || true
+    sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/hive2/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/hive2/ || true
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/spark/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/spark/ || true
 
     sudo chown -R oozie:oozie $OOZIE_CURRENT/ || true
@@ -182,12 +184,14 @@ else
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/pig/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/oozie/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/hive/
+    sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/hive2/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/spark/
     cd $OOZIE_CURRENT
 
     sudo cp $OOZIE_CURRENT/share/lib/oozie/* $OOZIE_CURRENT/temp_sharelib/lib/oozie/ || true
     sudo cp $OOZIE_CURRENT/share/lib/pig/* $OOZIE_CURRENT/temp_sharelib/lib/pig/ || true
     sudo cp $OOZIE_CURRENT/share/lib/hive/* $OOZIE_CURRENT/temp_sharelib/lib/hive/ || true
+    sudo cp $OOZIE_CURRENT/share/lib/hive2/* $OOZIE_CURRENT/temp_sharelib/lib/hive2/ || true
     sudo cp $OOZIE_CURRENT/share/lib/spark/* $OOZIE_CURRENT/temp_sharelib/lib/spark/ || true
 
     sudo cp $OOZIE_CURRENT/share/lib/hcatalog/*.jar $OOZIE_CURRENT/libext/ || true
