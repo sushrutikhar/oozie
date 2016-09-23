@@ -1503,7 +1503,7 @@
             <dependency>
                 <groupId>org.apache.falcon</groupId>
                 <artifactId>falcon-oozie-el-extension</artifactId>
-                <version>0.6-incubating</version>
+                <version>0.9</version>
             </dependency>
 
             <dependency>
