@@ -21,11 +21,11 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.3.7-SNAPSHOT</version>
+        <version>4.3.7</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-docs</artifactId>
-    <version>4.3.7-SNAPSHOT</version>
+    <version>4.3.7</version>
     <description>Apache Oozie Docs</description>
     <name>Apache Oozie Docs</name>
     <packaging>war</packaging>
