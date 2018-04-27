@@ -1603,6 +1603,13 @@
                 <version>0.9</version>
             </dependency>
 
+                <dependency>
+                    <groupId>com.inmobi.grid</groupId>
+                    <artifactId>fs-extensions</artifactId>
+                    <version>0.3</version>
+                    <classifier>azure-uber</classifier>
+                </dependency>
+
             <dependency>
                 <groupId>mysql</groupId>
                 <artifactId>mysql-connector-java</artifactId>

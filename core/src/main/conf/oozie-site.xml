@@ -242,7 +242,7 @@
 
     <property>
         <name>oozie.service.HadoopAccessorService.supported.filesystems</name>
-        <value>hdfs,hftp,webhdfs,s4</value>
+        <value>hdfs,hftp,webhdfs,s4,wasbs,blob</value>
         <description>
             Enlist the different filesystems supported for federation. If wildcard "*" is specified,
             then ALL file schemes will be allowed.
