@@ -158,6 +158,12 @@
             <groupId>org.apache.falcon</groupId>
             <artifactId>falcon-oozie-el-extension</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.inmobi.grid</groupId>
+            <artifactId>fs-extensions</artifactId>
+            <classifier>azure-uber</classifier>
+        </dependency>
     </dependencies>
 
     <build>
