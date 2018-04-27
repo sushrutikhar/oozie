@@ -1602,6 +1602,14 @@
                 <artifactId>falcon-oozie-el-extension</artifactId>
                 <version>0.11</version>
             </dependency>
+
+            <dependency>
+                <groupId>com.inmobi.grid</groupId>
+                <artifactId>fs-extensions</artifactId>
+                <version>0.3</version>
+                <classifier>azure-uber</classifier>
+            </dependency>
+
             <dependency>
                 <groupId>org.apache.hadoop</groupId>
                 <artifactId>hadoop-aws</artifactId>
