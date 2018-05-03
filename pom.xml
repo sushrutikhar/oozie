@@ -1616,7 +1616,7 @@
                 <version>5.1.18</version>
             </dependency>
         </dependencies>
-    </dependencyManagement>p
+    </dependencyManagement>
 
     <build>
         <pluginManagement>
