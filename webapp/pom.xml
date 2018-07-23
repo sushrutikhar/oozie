@@ -21,11 +21,11 @@
     <parent>
         <groupId>org.apache.oozie</groupId>
         <artifactId>oozie-main</artifactId>
-        <version>4.3.6</version>
+        <version>4.3.6-SNAPSHOT</version>
     </parent>
     <groupId>org.apache.oozie</groupId>
     <artifactId>oozie-webapp</artifactId>
-    <version>4.3.6</version>
+    <version>4.3.6-SNAPSHOT</version>
     <description>Apache Oozie WebApp</description>
     <name>Apache Oozie WebApp</name>
     <packaging>war</packaging>
@@ -237,6 +237,10 @@
                                 <artifactItem>
                                     <groupId>org.apache.oozie</groupId>
                                     <artifactId>oozie-sharelib-spark2</artifactId>
+                                </artifactItem>
+                                <artifactItem>
+                                    <groupId>org.apache.oozie</groupId>
+                                    <artifactId>oozie-sharelib-sparkLatest</artifactId>
                                 </artifactItem>
                             </artifactItems>
                             <outputDirectory>${project.build.directory}/oozie-webapp-${project.version}/WEB-INF/lib</outputDirectory>
