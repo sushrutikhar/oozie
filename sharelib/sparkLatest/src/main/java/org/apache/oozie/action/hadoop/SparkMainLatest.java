@@ -449,7 +449,7 @@ public class SparkMainLatest extends LauncherMain {
       // won't think those belong to different file system.
       // This will avoid an extra copy of files which already exists on
       // same hdfs.
-      if (!fileUri.toString().equals(jarPath) && fs.getUri().getScheme().equals(fileUri.getScheme())
+      if (fs.getUri().getScheme().equals(fileUri.getScheme())
         && (fs.getUri().getHost().equals(fileUri.getHost()) || fileUri.getHost() == null)
         && (fs.getUri().getPort() == -1 || fileUri.getPort() == -1
         || fs.getUri().getPort() == fileUri.getPort())) {
@@ -458,8 +458,10 @@ public class SparkMainLatest extends LauncherMain {
         // Here we skip the application jar, because
         // (if uris are same,) it will get distributed multiple times
         // - one time with --files and another time as application jar.
-        if (!uri.toString().equals(jarPath)) {
+        if (!uri.getRawPath().equals(new Path(jarPath).toUri().getRawPath())) {
           listUris.add(uri);
+        } else {
+          System.out.println("Skipping duplicate file; URI: " + uri.toString());
         }
       }
     }
