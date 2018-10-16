@@ -107,6 +107,7 @@
         <spark.streaming.kafka.version.latest>1.6.3</spark.streaming.kafka.version.latest>
         <spark.bagel.version.latest>1.6.3</spark.bagel.version.latest>
         <spark.scala.binary.version.latest>2.11</spark.scala.binary.version.latest>
+        <spark.commons.lang3.version.latest>3.5</spark.commons.lang3.version.latest>
 
 
         <spark.guava.version>14.0.1</spark.guava.version>

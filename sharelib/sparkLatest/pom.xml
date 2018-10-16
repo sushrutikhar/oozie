@@ -47,7 +47,11 @@
       <artifactId>guava</artifactId>
       <version>${spark.guava.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${spark.commons.lang3.version.latest}</version>
+    </dependency>
     <dependency>
       <groupId>commons-lang</groupId>
       <artifactId>commons-lang</artifactId>
