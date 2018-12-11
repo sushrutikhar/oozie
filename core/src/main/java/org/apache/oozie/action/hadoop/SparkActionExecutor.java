@@ -149,7 +149,7 @@ public class SparkActionExecutor extends JavaActionExecutor {
                 classes.add(Class.forName(SPARK_MAIN_CLASS_NAME_LATEST));
             } else if("2".equals(sparkVersion)){
                 classes.add(Class.forName(SPARK_MAIN_CLASS_NAME_2));
-            } else if("3".equals(sparkVersion)){
+            } else if("-2".equals(sparkVersion)){
                 classes.add(Class.forName(SPARK_MAIN_CLASS_NAME_HDP));
             } else {
                 classes.add(Class.forName(SPARK_MAIN_CLASS_NAME_1));
@@ -173,7 +173,7 @@ public class SparkActionExecutor extends JavaActionExecutor {
             return "sparkLatest";
         } else if("2".equals(sparkVersion)) {
             return "spark2";
-        } else if("3".equals(sparkVersion)) {
+        } else if("-2".equals(sparkVersion)) {
             return "sparkHdp";
         } else{
             return "spark";
@@ -186,7 +186,7 @@ public class SparkActionExecutor extends JavaActionExecutor {
             return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, SPARK_MAIN_CLASS_NAME_LATEST);
         } else if("2".equals(sparkVersion)){
             return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, SPARK_MAIN_CLASS_NAME_2);
-        } else if("3".equals(sparkVersion)){
+        } else if("-2".equals(sparkVersion)){
             return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, SPARK_MAIN_CLASS_NAME_HDP);
         } else {
             return launcherConf.get(LauncherMapper.CONF_OOZIE_ACTION_MAIN_CLASS, SPARK_MAIN_CLASS_NAME_1);
