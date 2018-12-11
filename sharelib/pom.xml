@@ -42,6 +42,7 @@
         <module>spark</module>
         <module>spark2</module>
         <module>sparkLatest</module>
+        <module>sparkHdp</module>
     </modules>
 
     <build>
