@@ -54,7 +54,7 @@ public class SparkMainHdp extends LauncherMain {
   private static final String LOG4J_CONFIGURATION_JAVA_OPTION = "-Dlog4j.configuration=";
   private static final String HIVE_SECURITY_TOKEN = "spark.yarn.security.tokens.hive.enabled";
   private static final String HBASE_SECURITY_TOKEN = "spark.yarn.security.tokens.hbase.enabled";
-  private static final String CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR = "oozie.action.spark.setup.org.apache.oozie.action.hadoop.conf.dir";
+  private static final String CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR = "oozie.action.spark.setup.hadoop.conf.dir";
   private static final String PWD = "$PWD" + File.separator + "*";
   private static final Pattern[] PYSPARK_DEP_FILE_PATTERN = { Pattern.compile("py4\\S*src.zip"),
     Pattern.compile("pyspark.zip") };
@@ -70,7 +70,7 @@ public class SparkMainHdp extends LauncherMain {
   private static final String SPARK_YARN_JAR = "spark.yarn.jar";
   private static final String SPARK_YARN_JARS = "spark.yarn.jars";
   private String sparkYarnJar = null;
-  private String sparkVersion = "2.X.X";
+  private String sparkVersion = "1.X.X";
   public static void main(String[] args) throws Exception {
     run(SparkMainHdp.class, args);
   }
@@ -271,7 +271,7 @@ public class SparkMainHdp extends LauncherMain {
   }
 
   private void prepareHadoopConfig(Configuration actionConf) throws IOException {
-    // Copying oozie.action.conf.xml into org.apache.oozie.action.hadoop configuration *-site files.
+    // Copying oozie.action.conf.xml into hadoop configuration *-site files.
     if (actionConf.getBoolean(CONF_OOZIE_SPARK_SETUP_HADOOP_CONF_DIR, false)) {
       String actionXml = System.getProperty("oozie.action.conf.xml");
       if (actionXml != null) {
@@ -391,7 +391,7 @@ public class SparkMainHdp extends LauncherMain {
     // Preparing log4j configuration
     URL log4jFile = Thread.currentThread().getContextClassLoader().getResource("log4j.properties");
     if (log4jFile != null) {
-      // getting org.apache.oozie.action.hadoop log4j configuration
+      // getting hadoop log4j configuration
       hadoopProps.load(log4jFile.openStream());
     }
 
@@ -408,9 +408,9 @@ public class SparkMainHdp extends LauncherMain {
     hadoopProps.setProperty("log4j.appender.jobid.file", logFile);
     hadoopProps.setProperty("log4j.appender.jobid.layout", "org.apache.log4j.PatternLayout");
     hadoopProps.setProperty("log4j.appender.jobid.layout.ConversionPattern", "%d [%t] %-5p %c %x - %m%n");
-    hadoopProps.setProperty("log4j.logger.org.apache.org.apache.oozie.action.hadoop.mapred", "INFO, jobid");
-    hadoopProps.setProperty("log4j.logger.org.apache.org.apache.oozie.action.hadoop.mapreduce.Job", "INFO, jobid");
-    hadoopProps.setProperty("log4j.logger.org.apache.org.apache.oozie.action.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");
+    hadoopProps.setProperty("log4j.logger.org.apache.hadoop.mapred", "INFO, jobid");
+    hadoopProps.setProperty("log4j.logger.org.apache.hadoop.mapreduce.Job", "INFO, jobid");
+    hadoopProps.setProperty("log4j.logger.org.apache.hadoop.yarn.client.api.impl.YarnClientImpl", "INFO, jobid");
 
     String localProps = new File(SPARK_LOG4J_PROPS).getAbsolutePath();
     OutputStream os1 = new FileOutputStream(localProps);

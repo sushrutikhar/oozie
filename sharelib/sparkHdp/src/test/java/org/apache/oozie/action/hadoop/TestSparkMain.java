@@ -99,6 +99,7 @@ public class TestSparkMain extends MainTestCase {
         jarList.add(jarName + "1.2.4.jar");
         jarList.add(jarName + "-1.2.4_1.2.3.4.jar");
         jarList.add(jarName + ".jar");
+        jarList.add(jarName + "_2.11-2.3.0.2.6.5.0-292.jar");
 
         // all should pass
         for (String s : jarList) {
