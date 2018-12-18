@@ -119,6 +119,7 @@ if [ "$DEPLOYMENT_MODE" == "ONLY_SHARELIB" ]; then
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/spark/
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/spark2/
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/sparkLatest/
+    sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/sparkHdp/
     sudo mkdir -p $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/mapreduce-streaming/
     cd $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION
 
@@ -129,6 +130,7 @@ if [ "$DEPLOYMENT_MODE" == "ONLY_SHARELIB" ]; then
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/spark/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/spark/ || true
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/spark2/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/spark2/ || true
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/sparkLatest/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/sparkLatest/ || true
+    sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/sparkHdp/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/sparkHdp/ || true
     sudo cp $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/share/lib/mapreduce-streaming/* $OOZIE_BASE/$OOZIE_SHARELIB/$OOZIE_VERSION/temp_sharelib/lib/mapreduce-streaming/ || true
 
     sudo chown -R oozie:oozie $OOZIE_CURRENT/ || true
@@ -194,6 +196,7 @@ else
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/spark/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/spark2/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/sparkLatest/
+    sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/sparkHdp/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/distcp/
     sudo mkdir -p $OOZIE_CURRENT/temp_sharelib/lib/mapreduce-streaming/
 
@@ -206,6 +209,7 @@ else
     sudo cp $OOZIE_CURRENT/share/lib/spark/* $OOZIE_CURRENT/temp_sharelib/lib/spark/ || true
     sudo cp $OOZIE_CURRENT/share/lib/spark2/* $OOZIE_CURRENT/temp_sharelib/lib/spark2/ || true
     sudo cp $OOZIE_CURRENT/share/lib/sparkLatest/* $OOZIE_CURRENT/temp_sharelib/lib/sparkLatest/ || true
+    sudo cp $OOZIE_CURRENT/share/lib/sparkHdp/* $OOZIE_CURRENT/temp_sharelib/lib/sparkHdp/ || true
     sudo cp $OOZIE_CURRENT/share/lib/mapreduce-streaming/* $OOZIE_CURRENT/temp_sharelib/lib/mapreduce-streaming/ || true
     sudo cp $OOZIE_CURRENT/libext/s4*jar $OOZIE_CURRENT/temp_sharelib/lib/oozie/ || true
     sudo cp $OOZIE_CURRENT/libext/s4*jar $OOZIE_CURRENT/libext/ || true

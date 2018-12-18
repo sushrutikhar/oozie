@@ -75,6 +75,10 @@
         <directory>${basedir}/sparkLatest/target/partial-sharelib</directory>
         <outputDirectory>/</outputDirectory>
       </fileSet>
+      <fileSet>
+        <directory>${basedir}/sparkHdp/target/partial-sharelib</directory>
+        <outputDirectory>/</outputDirectory>
+      </fileSet>
     </fileSets>
 
 </assembly>
